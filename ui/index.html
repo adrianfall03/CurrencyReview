@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FX Converter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <div class="header">
+      <div>
+        <div class="title" data-i18n="app_title">FX Converter</div>
+        <div class="sub" data-i18n="app_subtitle">Accounting-friendly FX rates (Mizuho / Mitsubishi MURC)</div>
+      </div>
+      <div class="header-right">
+        <button class="theme-toggle icon-btn" id="lang-toggle" title="Switch to Japanese" aria-label="Switch language">あ</button>
+        <button class="theme-toggle icon-btn" id="theme-toggle" title="Switch to dark theme" aria-label="Toggle theme">☾</button>
+        <div class="pill off" id="loaded-pill" data-i18n="loaded_no">No rates loaded</div>
+      </div>
+    </div>
+
+    <div class="status hidden" id="status"></div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-label"><span data-i18n="label_updating">Updating rates:</span> <span id="progress-text">0%</span></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <!-- Source + Rate Basis -->
+        <div class="row" style="justify-content: space-between; gap: 12px;">
+          <div style="flex: 1;">
+            <label data-i18n="label_source">Data source</label>
+
+            <div class="row" style="margin-top:6px; gap: 10px; align-items: flex-end;">
+              <div style="display:flex; flex-direction:column;">
+                <div class="tiny" data-i18n="label_provider">Provider</div>
+                <select id="source-select" style="min-width: 240px;"></select>
+              </div>
+
+              <div id="basis-wrap" style="display:none; flex-direction:column;">
+                <div class="tiny" data-i18n="label_rate_basis">Rate basis (TTM / TTS / TTB)</div>
+                <select id="basis-select" style="min-width: 260px;"></select>
+              </div>
+
+              <button class="btn" id="btn-refresh">
+                <span class="btn-text" data-i18n="btn_refresh">Refresh</span>
+                <span class="spinner" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="tiny" style="margin-top:8px;">
+              <span data-i18n="label_loaded">Loaded:</span> <span id="csv-path">Not loaded</span>
+            </div>
+
+            <div class="tiny" style="margin-top:4px;">
+              <span data-i18n="label_current_basis">Current basis:</span> <span id="basis-pill" style="font-weight:600;">-</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- Recent -->
+        <div class="row recent-row">
+          <div>
+            <label data-i18n="label_recent_sources">Recent sources</label><br>
+            <select id="recent-select" class="recent-select"></select>
+          </div>
+          <button class="btn secondary" id="btn-open-recent" data-i18n="btn_use_recent">Use recent</button>
+          <div class="tiny" data-i18n="hint_recent">Quick switch between providers</div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- Pair -->
+        <div class="row align-bottom">
+          <div>
+            <label data-i18n="label_from">From</label><br>
+            <select id="from-cur"></select>
+          </div>
+          <div>
+            <label data-i18n="label_to">To</label><br>
+            <select id="to-cur"></select>
+          </div>
+          <button class="btn secondary" id="btn-swap" data-i18n="btn_swap">Swap</button>
+        </div>
+
+        <!-- Date -->
+        <div class="row align-bottom" style="margin-top:14px;">
+          <div>
+            <label data-i18n="label_date_mode">Date mode</label><br>
+            <select id="date-mode">
+              <option value="day" data-i18n="opt_day">Day</option>
+              <option value="month" data-i18n="opt_month">Month</option>
+            </select>
+          </div>
+
+          <div id="day-group">
+            <label data-i18n="label_day">Day</label><br>
+            <input id="day-input" type="date">
+          </div>
+
+          <div id="month-group" style="display:none;">
+            <label data-i18n="label_year">Year</label><br>
+            <select id="year-select"></select>
+          </div>
+
+          <div id="month-group-2" style="display:none;">
+            <label data-i18n="label_month">Month</label><br>
+            <select id="month-select"></select>
+          </div>
+
+          <button class="btn secondary" id="btn-latest" data-i18n="btn_latest">Use latest</button>
+        </div>
+        <div class="range-pill" id="range-text">
+          <span class="range-dot" aria-hidden="true"></span>
+          <span data-i18n="range_available">Available range: -</span>
+        </div>
+
+        <!-- Amount -->
+        <div class="row" style="margin-top:14px;">
+          <div>
+            <label data-i18n="label_amount">Amount</label><br>
+            <input id="amount-input" type="text" placeholder="10000">
+          </div>
+          <div class="tiny" data-i18n="hint_amount">Auto convert; Enter/blur formats</div>
+        </div>
+
+        <div class="row align-bottom" style="margin-top:12px;">
+          <div>
+            <label data-i18n="label_result_rounding">Result rounding</label><br>
+            <select id="result-rounding">
+              <option value="half_up" data-i18n="rounding_half_up">Half up</option>
+              <option value="up" data-i18n="rounding_up">Round up (ceiling)</option>
+              <option value="down" data-i18n="rounding_down">Round down (floor)</option>
+            </select>
+          </div>
+          <div>
+            <label data-i18n="label_result_decimals">Result decimals</label><br>
+            <select id="result-decimals">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="card selectable">
+        <div class="row result-head">
+          <div>
+            <label data-i18n="label_result">Result</label>
+            <div class="result" id="result">-</div>
+            <div class="result-hint" id="result-hint" data-i18n="hint_result">Choose currencies and a date to see results.</div>
+          </div>
+          <div class="tiny result-meta">
+            <div class="meta-line"><span data-i18n="label_used_rate_date">Used rate date:</span> <span id="used-date">-</span></div>
+            <div class="meta-line"><span data-i18n="label_basis">Basis:</span> <span id="basis-inline" style="font-weight:600;">-</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div class="rate-line"><span data-i18n="label_resolved_date">Resolved date</span><span id="sel-date">-</span></div>
+          <div class="rate-line"><span data-i18n="label_from_jpy">From -> JPY</span><span id="rate-from">-</span></div>
+          <div class="rate-line"><span data-i18n="label_to_jpy">To -> JPY</span><span id="rate-to">-</span></div>
+          <div class="rate-line"><span data-i18n="label_cross">Cross</span><span id="rate-cross">-</span></div>
+        </div>
+
+        <div class="auto-summary-wrap">
+          <div class="tiny" data-i18n="label_auto_summary">Auto summary</div>
+          <pre id="auto-summary" class="auto-summary">-</pre>
+        </div>
+
+        <div class="tiny" style="margin-top:10px;" id="fallback-info"></div>
+      </div>
+    </div>
+
+    <details class="card details selectable" id="details">
+      <summary class="details-summary">
+        <span data-i18n="label_rate_details">Rate details</span>
+        <span class="details-hint" id="details-hint" aria-hidden="true"></span>
+      </summary>
+      <div class="details-body">
+        <pre id="rate-details">Refresh to start.</pre>
+      </div>
+    </details>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

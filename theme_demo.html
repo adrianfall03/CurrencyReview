@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FX Converter Dark Theme Demo</title>
+    <style>
+        :root {
+            --bg-1: #f7f1e5;
+            --bg-2: #e7f0ea;
+            --ink: #1f2a2e;
+            --muted: #5a6b6f;
+            --card: #ffffff;
+            --accent: #0f6f5c;
+            --accent-2: #e3a93e;
+            --border: #e0e0de;
+            --shadow: 0 8px 24px rgba(25, 40, 40, 0.12);
+        }
+
+        [data-theme="dark"] {
+            --bg-1: #1a1a1a;
+            --bg-2: #2a2a2a;
+            --ink: #ffffff;
+            --muted: #cccccc;
+            --card: #333333;
+            --accent: #4ade80;
+            --accent-2: #fbbf24;
+            --border: #555555;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: linear-gradient(140deg, var(--bg-1), var(--bg-2));
+            font-family: "Bahnschrift", "Yu Gothic UI", "Meiryo", "Segoe UI", sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .theme-toggle {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: #f5f0e3;
+            color: #775b1a;
+            border: 1px solid #ecd7a8;
+            margin-bottom: 20px;
+        }
+
+        [data-theme="dark"] .status {
+            background: #3a3a1a;
+            color: #d4c48a;
+            border-color: #6b5c2a;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: #f0f5f3;
+            color: var(--accent);
+            border: 1px solid #cfe2dd;
+        }
+
+        [data-theme="dark"] .pill {
+            background: #1a2a1a;
+            border-color: #2a4a2a;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-item {
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="dark"] .feature-item {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <div class="title">FX Converter - Dark Theme Demo</div>
+            <button class="theme-toggle" id="theme-toggle" title="Toggle dark theme">🌙</button>
+        </div>
+
+        <div class="status">
+            <strong>Demo:</strong> Click the moon/sun button to toggle between light and dark themes. The theme preference is saved in localStorage.
+        </div>
+
+        <div class="card">
+            <h3>Theme Features</h3>
+            <div class="features">
+                <div class="feature-item">
+                    <h4>🌙 Dark Mode</h4>
+                    <p>Easy on the eyes in low-light environments</p>
+                </div>
+                <div class="feature-item">
+                    <h4>💾 Persistent</h4>
+                    <p>Remembers your theme choice</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🎨 Consistent</h4>
+                    <p>All UI elements adapt to the theme</p>
+                </div>
+                <div class="feature-item">
+                    <h4>⚡ Fast</h4>
+                    <p>Instant theme switching with CSS variables</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Sample UI Elements</h3>
+            <p>Here are some sample UI elements that change with the theme:</p>
+            <div class="pill">Rates loaded</div>
+            <button class="btn" style="margin-left: 10px;">Refresh Rates</button>
+            <p style="margin-top: 15px; color: var(--muted);">This text uses the muted color variable</p>
+        </div>
+    </div>
+
+    <script>
+        const toggleBtn = document.getElementById('theme-toggle');
+        let currentTheme = localStorage.getItem('fx-converter-theme') || 'light';
+
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            if (theme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                toggleBtn.textContent = '☀️';
+                toggleBtn.title = 'Switch to light theme';
+            } else {
+                html.removeAttribute('data-theme');
+                toggleBtn.textContent = '🌙';
+                toggleBtn.title = 'Switch to dark theme';
+            }
+            currentTheme = theme;
+            localStorage.setItem('fx-converter-theme', theme);
+        }
+
+        // Initialize theme
+        applyTheme(currentTheme);
+
+        // Toggle theme on button click
+        toggleBtn.addEventListener('click', () => {
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+        });
+    </script>
+</body>
+</html>

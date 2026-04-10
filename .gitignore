@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+cache/
+build/
+dist/
+dist_webview2_v4/
+
+# Local runtime/cache files
+murc_kawase_daily.csv
+murc_last_date.txt
+murc_progress.txt
+user_config.json
+
+# OS artifacts
+Thumbs.db
+Desktop.ini

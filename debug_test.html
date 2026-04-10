@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FX Converter - Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>FX Converter - Debug Test</h1>
+
+    <div class="test-section">
+        <h3>Testing Basic JavaScript Functions</h3>
+        <button onclick="testBasicFunctions()">Test Basic Functions</button>
+        <div id="basic-test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Testing Theme Toggle</h3>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle dark theme">🌙</button>
+        <div id="theme-test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Testing Element Access</h3>
+        <button onclick="testElementAccess()">Test Element Access</button>
+        <div id="element-test-result"></div>
+    </div>
+
+    <script>
+        // Minimal version of the $ function
+        const $ = (id) => document.getElementById(id);
+
+        // Test state object
+        const state = {
+            loaded: false,
+            renderTimer: null,
+            minDate: "",
+            maxDate: "",
+            sourceId: "mizuho",
+            rateBasis: "ttm",
+            rateBasisLabel: "-",
+            theme: "light"
+        };
+
+        function testBasicFunctions() {
+            const result = document.getElementById('basic-test-result');
+            try {
+                // Test basic function calls
+                console.log('Testing basic functions...');
+                console.log('State object:', state);
+
+                result.innerHTML = '<span class="success">✓ Basic functions working</span>';
+            } catch (error) {
+                result.innerHTML = '<span class="error">✗ Error: ' + error.message + '</span>';
+                console.error(error);
+            }
+        }
+
+        function toggleTheme() {
+            const result = document.getElementById('theme-test-result');
+            try {
+                const html = document.documentElement;
+                const toggleBtn = document.getElementById('theme-toggle');
+
+                console.log('Current theme:', state.theme);
+
+                if (state.theme === "light") {
+                    html.setAttribute("data-theme", "dark");
+                    state.theme = "dark";
+                    toggleBtn.textContent = "☀️";
+                    toggleBtn.title = "Switch to light theme";
+                } else {
+                    html.removeAttribute("data-theme");
+                    state.theme = "light";
+                    toggleBtn.textContent = "🌙";
+                    toggleBtn.title = "Switch to dark theme";
+                }
+
+                // Save theme preference
+                localStorage.setItem("fx-converter-theme", state.theme);
+
+                result.innerHTML = '<span class="success">✓ Theme toggled to: ' + state.theme + '</span>';
+                console.log('Theme toggled to:', state.theme);
+            } catch (error) {
+                result.innerHTML = '<span class="error">✗ Theme toggle error: ' + error.message + '</span>';
+                console.error(error);
+            }
+        }
+
+        function testElementAccess() {
+            const result = document.getElementById('element-test-result');
+            try {
+                const elements = [
+                    'theme-toggle',
+                    'basic-test-result',
+                    'theme-test-result',
+                    'element-test-result'
+                ];
+
+                let successCount = 0;
+                elements.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        successCount++;
+                        console.log('Element found:', id, el);
+                    } else {
+                        console.error('Element not found:', id);
+                    }
+                });
+
+                result.innerHTML = '<span class="success">✓ Found ' + successCount + '/' + elements.length + ' elements</span>';
+            } catch (error) {
+                result.innerHTML = '<span class="error">✗ Element access error: ' + error.message + '</span>';
+                console.error(error);
+            }
+        }
+
+        // Load theme preference on page load
+        function loadThemePreference() {
+            const savedTheme = localStorage.getItem("fx-converter-theme") || "light";
+            state.theme = savedTheme;
+
+            const html = document.documentElement;
+            const toggleBtn = document.getElementById('theme-toggle');
+
+            if (savedTheme === "dark") {
+                html.setAttribute("data-theme", "dark");
+                toggleBtn.textContent = "☀️";
+                toggleBtn.title = "Switch to light theme";
+            } else {
+                toggleBtn.textContent = "🌙";
+                toggleBtn.title = "Switch to dark theme";
+            }
+
+            console.log('Loaded theme preference:', savedTheme);
+        }
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", function() {
+            loadThemePreference();
+            console.log('Debug test page loaded');
+        });
+
+        // Add event listener to theme toggle button
+        document.getElementById('theme-toggle').addEventListener("click", toggleTheme);
+    </script>
+</body>
+</html>
