@@ -144,6 +144,55 @@ def _mizuho_increment_download_count(log_path: Path) -> None:
         pass
 
 
+def _download_via_playwright(url: str, tmp_path: Path, referer: str, progress_cb=None) -> None:
+    """Download url using a headless Chromium browser (real TLS fingerprint, bypasses Akamai WAF)."""
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            locale="ja-JP",
+            timezone_id="Asia/Tokyo",
+            extra_http_headers={
+                "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+                "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"Windows"',
+            },
+        )
+        page = context.new_page()
+
+        if progress_cb:
+            progress_cb(15)
+
+        # Visit referrer page first to set cookies and establish session
+        try:
+            page.goto(referer, wait_until="domcontentloaded", timeout=15000)
+        except Exception:
+            pass
+
+        if progress_cb:
+            progress_cb(40)
+
+        # Fetch CSV using the browser's authenticated context
+        response = context.request.get(url, timeout=30000)
+        if not response.ok:
+            browser.close()
+            raise RuntimeError(f"Playwright got HTTP {response.status} from {url}")
+
+        body = response.body()
+        browser.close()
+
+    if progress_cb:
+        progress_cb(85)
+
+    tmp_path.write_bytes(body)
+
+
 def download_csv_to_cache(url: str, cache_path: Path, progress_cb=None,
                           log_path: Optional[Path] = None) -> str:
     import requests as _requests
@@ -165,8 +214,22 @@ def download_csv_to_cache(url: str, cache_path: Path, progress_cb=None,
     base_url = url.rsplit("/", 1)[0]
     referer = base_url + "/index.html"
 
+    # --- Attempt 1: Playwright (real Chrome TLS fingerprint — best against Akamai WAF) ---
+    try:
+        if progress_cb:
+            progress_cb(5)
+        _download_via_playwright(url, tmp_path, referer, progress_cb=progress_cb)
+        os.replace(tmp_path, cache_path)
+        if log_path is not None:
+            _mizuho_increment_download_count(log_path)
+        return str(cache_path)
+    except ImportError:
+        pass  # playwright not installed, fall through
+    except Exception:
+        pass  # Playwright failed (likely IP-blocked), fall through
+
+    # --- Attempt 2: requests with full Chrome headers (cookie prefetch + retry) ---
     session = _requests.Session()
-    # Full Chrome header set — including sec-ch-ua / sec-fetch-* which real browsers always send
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
@@ -176,8 +239,6 @@ def download_csv_to_cache(url: str, cache_path: Path, progress_cb=None,
         "sec-ch-ua-platform": '"Windows"',
         "Connection": "keep-alive",
     })
-
-    # Prefetch the referrer page to acquire session cookies (helps bypass WAF bot detection)
     try:
         session.get(referer, timeout=10, headers={
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -206,13 +267,10 @@ def download_csv_to_cache(url: str, cache_path: Path, progress_cb=None,
                 resp.raise_for_status()
                 total_str = resp.headers.get("Content-Length")
                 total = int(total_str) if total_str and total_str.isdigit() else None
-
                 downloaded = 0
                 chunk_size = 64 * 1024
-
                 if progress_cb and not total:
                     progress_cb(20)
-
                 with open(tmp_path, "wb") as f:
                     for chunk in resp.iter_content(chunk_size=chunk_size):
                         if not chunk:
@@ -222,10 +280,8 @@ def download_csv_to_cache(url: str, cache_path: Path, progress_cb=None,
                         if progress_cb and total:
                             pct = int(min(95, 5 + downloaded * 90 / total))
                             progress_cb(pct)
-
                 if progress_cb and not total:
                     progress_cb(90)
-
             os.replace(tmp_path, cache_path)
             if log_path is not None:
                 _mizuho_increment_download_count(log_path)
@@ -234,7 +290,7 @@ def download_csv_to_cache(url: str, cache_path: Path, progress_cb=None,
             last_err = e
             continue
 
-    # Fallback: try system curl (completely different TLS fingerprint from Python)
+    # --- Attempt 3: system curl (different TLS fingerprint from Python) ---
     try:
         import subprocess
         if progress_cb:
@@ -266,7 +322,7 @@ def download_csv_to_cache(url: str, cache_path: Path, progress_cb=None,
         pass
 
     raise RuntimeError(
-        f"Mizuhoサーバーからのダウンロードに失敗しました（requests×3回 + curl フォールバック）: {last_err}\n"
+        f"Mizuhoサーバーからのダウンロードに失敗しました（Playwright + requests×3 + curl すべて失敗）: {last_err}\n"
         f"ブラウザで {url} を開いて手動でダウンロードし、\n"
         f"以下のパスに保存してください: {cache_path}"
     )
