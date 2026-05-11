@@ -22,16 +22,27 @@ function normalizeDate(raw: string): string | null {
 function parseMizuhoCSV(text: string): MizuhoData {
   const lines = text.split(/\r?\n/)
 
-  // Find header row (first row with many comma-separated columns)
+  const parseRow = (line: string) =>
+    line.split(',').map((h) => h.trim().replace(/^["']+|["']+$/g, ''))
+
+  // Mizuho CSVs have a two-row header:
+  //   Row N:   "年月日, 参考相場, 参考相場, ..."  (group label, Japanese text)
+  //   Row N+1: "",      USD,       EUR,       ...  (actual ISO currency codes)
+  // Strategy: find the first row that contains 3+ ISO currency codes (2-4 uppercase letters).
+  // Fall back to the first multi-column row if none is found.
   let headerIdx = -1
-  for (let i = 0; i < Math.min(10, lines.length); i++) {
-    if (lines[i].split(',').length > 5) { headerIdx = i; break }
+  let firstMultiColIdx = -1
+  for (let i = 0; i < Math.min(15, lines.length); i++) {
+    const cols = parseRow(lines[i])
+    if (cols.length <= 5) continue
+    if (firstMultiColIdx < 0) firstMultiColIdx = i
+    const isoCodes = cols.filter((c) => /^[A-Z]{2,4}$/.test(c))
+    if (isoCodes.length >= 3) { headerIdx = i; break }
   }
+  if (headerIdx < 0) headerIdx = firstMultiColIdx
   if (headerIdx < 0) throw new Error('Could not find CSV header')
 
-  const headerCols = lines[headerIdx]
-    .split(',')
-    .map((h) => h.trim().replace(/^["']+|["']+$/g, ''))
+  const headerCols = parseRow(lines[headerIdx])
 
   // Group duplicate ".1" columns (Mizuho CSV convention)
   const groups: { [base: string]: number[] } = {}
