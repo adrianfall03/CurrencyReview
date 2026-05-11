@@ -1,4 +1,4 @@
-# FX Converter / 外貨換算 / 为替換算
+# FX Converter / 外貨換算 / 外汇换算
 
 [English](#english) | [日本語](#日本語) | [中文](#中文)
 
@@ -7,231 +7,143 @@
 ## English
 
 ### Overview
-FX Converter is a desktop GUI tool for foreign exchange conversion using CSV-based rates.  
-It provides a clean HTML UI (pywebview) and supports two data sources:
+FX Converter is a web-based foreign exchange calculator deployed on Vercel.  
+It supports three data sources and performs cross-rate conversion via JPY pivot.
 
-- Mizuho Bank CSV (direct download)
-- Mitsubishi UFJ Research and Consulting (MURC) past FX rates (incremental crawl)
+**Live demo**: deploy to Vercel with one click.
+
+### Data Sources
+| Source | Coverage | Rate types |
+|---|---|---|
+| Mizuho Bank | 2002-04-01 to present | TTM only |
+| ECB (Frankfurter) | 1999-01-04 to present | Mid rate |
+| Mitsubishi MURC | 2014-01-01 to present | TTM / TTS / TTB |
 
 ### Features
-- GUI-based conversion with day or month selection
-- Two data sources (Mizuho / MURC)
-- MURC rate basis selectable: TTM / TTS / TTB
-- Cross-rate calculation via JPY
-- Local cache for faster reloads
-- Light/Dark theme toggle
+- Day or month date selection
+- Cross-rate calculation via JPY pivot
+- Half-up / ceiling / floor rounding with configurable decimal places
+- Auto-convert on form change
+- Light/Dark theme, English/Japanese UI
 
-### Requirements
-- Windows 10/11 recommended
-- Python 3.8+ (tested with Windows desktop)
-- WebView2 Runtime recommended (app will fall back to MSHTML if missing)
+### Architecture
+- **Next.js 15** App Router, TypeScript, deployed on **Vercel**
+- All rate fetching is server-side (API routes)
+- **Mizuho**: GitHub Actions runs Playwright daily to download the CSV (bypassing Akamai WAF) and uploads it to **Vercel Blob**. The app reads from Blob.
+- **ECB**: fetched live from `api.frankfurter.app`
+- **MURC**: HTML scraping via `cheerio`
 
-### Setup
-Create a virtual environment and install dependencies (recommended: use `bootstrap_env.py`):
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-Or use the bootstrap script:
-
-```bash
-python bootstrap_env.py
-```
-
-### Run
-```bash
-python fx_gui.py
-```
-
-### Build (optional, PyInstaller)
-```bash
-python bootstrap_env.py --with-pyinstaller
-pyinstaller fx_gui.spec
-```
-
-### Project Structure (key files)
-| File | Description |
+### Project Structure
+| Path | Description |
 |---|---|
-| `fx_gui.py` | Main app (API + UI glue) |
-| `ui/` | HTML/CSS/JS for the GUI |
-| `fx_gui.spec` | PyInstaller build spec |
-| `bootstrap_env.py` | Create venv + install dependencies |
-| `requirements.txt` | Python dependencies |
-| `user_config.json` | Local UI settings (auto-created) |
-| `cache/mizuho_quote.csv` | Cached Mizuho rates (auto-updated) |
-| `cache/mizuho_download_log.json` | Mizuho daily download counter |
-| `cache/murc_kawase_daily.csv` | Cached MURC rates (auto-updated) |
-| `cache/murc_last_date.txt` | MURC incremental crawl state |
+| `app/` | Next.js App Router pages and API routes |
+| `app/api/currencies/` | Currency list endpoint |
+| `app/api/convert/` | Conversion endpoint |
+| `components/FXConverter.tsx` | Main React client component |
+| `lib/mizuho.ts` | Mizuho CSV parser + Blob reader |
+| `lib/frankfurter.ts` | ECB/Frankfurter API client |
+| `lib/murc.ts` | MURC HTML scraper |
+| `lib/rates.ts` | Conversion engine (JPY pivot) |
+| `lib/types.ts` | Shared TypeScript types |
+| `scripts/sync-mizuho.mjs` | GitHub Actions script: download CSV → upload to Blob |
+| `.github/workflows/fetch-mizuho.yml` | Daily cron (weekdays 03:00 UTC) |
 
-### Mizuho Download — Notes
-The app downloads `quote.csv` directly from Mizuho Bank's server using browser-like HTTP headers
-to bypass WAF bot-detection. The following safeguards are in place:
+### Deployment
+1. Push to GitHub, connect repo to Vercel.
+2. Create a **Vercel Blob** store (Storage tab) with **Public** access and connect it to the project.
+3. Copy `BLOB_READ_WRITE_TOKEN` and add it as a **GitHub Actions secret** in the repo settings.
+4. Trigger **Fetch Mizuho CSV** workflow manually once (Actions tab → Run workflow).
+5. Redeploy on Vercel — all three sources will be available.
 
-- **Cookie prefetch**: visits the market index page first to obtain a session cookie before requesting the CSV.
-- **Retry (×3)**: retries up to 3 times with increasing delays on failure.
-- **curl fallback**: if Python `requests` fails, the system `curl` (different TLS fingerprint) is tried automatically.
-- **Daily limit**: at most **2 server fetches per calendar day** are allowed (tracked in `cache/mizuho_download_log.json`). Further requests within the day reuse the local cache.
-- **Manual fallback**: if automatic download fails, open `https://www.mizuhobank.co.jp/market/quote.csv` in a browser and save it as `cache/mizuho_quote.csv`.
-
-### Notes
-- If WebView2 Runtime is not installed, the app will show a warning and use MSHTML mode.
-- MURC data is crawled incrementally and stored locally for faster subsequent launches.
+### Local Development
+```bash
+npm install
+npm run dev
+```
+Set `BLOB_READ_WRITE_TOKEN` in `.env.local` to use the Mizuho source locally.
 
 ---
 
 ## 日本語
 
 ### 概要
-FX Converter は、CSV レートを使った外貨換算のデスクトップ GUI ツールです。  
-HTML UI（pywebview）を採用し、以下 2 つのデータソースに対応します。
+FX Converter は Vercel にデプロイする Web ベースの外貨換算ツールです。  
+3 つのデータソースに対応し、JPY を介したクロスレート計算を行います。
 
-- みずほ銀行の CSV（直接ダウンロード）
-- 三菱 UFJ リサーチ＆コンサルティング（MURC）の過去レート（増分クロール）
+### データソース
+| ソース | 対応期間 | レート種別 |
+|---|---|---|
+| みずほ銀行 | 2002-04-01〜現在 | TTM のみ |
+| ECB（Frankfurter） | 1999-01-04〜現在 | 仲値 |
+| 三菱 MURC | 2014-01-01〜現在 | TTM / TTS / TTB |
 
 ### 主な機能
-- 日付／月指定の換算
-- 2 つのデータソース（Mizuho / MURC）
-- MURC レート種別：TTM / TTS / TTB の切替
-- JPY を介したクロスレート計算
-- ローカルキャッシュで高速ロード
-- ライト／ダークテーマ切替
+- 日付・月次の選択
+- JPY 介したクロスレート計算
+- 四捨五入・切上げ・切捨て、小数桁数設定
+- フォーム変更時の自動換算
+- ライト／ダークテーマ、日英 UI 切替
 
-### 動作環境
-- Windows 10/11 推奨
-- Python 3.8+ 推奨
-- WebView2 Runtime 推奨（未導入時は MSHTML にフォールバック）
+### アーキテクチャ
+- **Next.js 15** App Router + TypeScript、**Vercel** にデプロイ
+- レート取得はすべてサーバーサイド（API ルート）
+- **みずほ**: GitHub Actions が Playwright を使って毎日 CSV をダウンロード（Akamai WAF 回避）し、**Vercel Blob** にアップロード。アプリは Blob から読み込む
+- **ECB**: `api.frankfurter.app` からライム取得
+- **MURC**: `cheerio` で HTML スクレイピング
 
-### セットアップ
-仮想環境を作成し、依存関係をインストールします（推奨：`bootstrap_env.py`）。
+### デプロイ手順
+1. GitHub にプッシュし、Vercel にリポジトリを接続。
+2. Vercel の Storage タブで **Blob** ストアを **Public** で作成しプロジェクトに接続。
+3. `BLOB_READ_WRITE_TOKEN` を GitHub Actions シークレットに追加。
+4. Actions タブから **Fetch Mizuho CSV** を手動で一度実行。
+5. Vercel で再デプロイ — 3 つのソースすべてが利用可能になります。
 
+### ローカル開発
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+npm install
+npm run dev
 ```
-
-またはブートストラップスクリプトを使います。
-
-```bash
-python bootstrap_env.py
-```
-
-### 実行
-```bash
-python fx_gui.py
-```
-
-### ビルド（任意）
-```bash
-python bootstrap_env.py --with-pyinstaller
-pyinstaller fx_gui.spec
-```
-
-### 主要ファイル
-| ファイル | 説明 |
-|---|---|
-| `fx_gui.py` | メインアプリ |
-| `ui/` | HTML/CSS/JS（GUI） |
-| `fx_gui.spec` | PyInstaller 用設定 |
-| `bootstrap_env.py` | venv 作成 + 依存関係インストール |
-| `requirements.txt` | Python 依存関係 |
-| `user_config.json` | UI 設定（自動生成） |
-| `cache/mizuho_quote.csv` | Mizuho レートキャッシュ（自動更新） |
-| `cache/mizuho_download_log.json` | Mizuho ダウンロード回数記録 |
-| `cache/murc_kawase_daily.csv` | MURC レートキャッシュ（自動更新） |
-| `cache/murc_last_date.txt` | MURC 増分クロール状態 |
-
-### Mizuho ダウンロードについて
-Mizuho 銀行のサーバーから `quote.csv` を直接取得する際、WAF のボット検知を回避するため
-ブラウザに近い HTTP リクエストを送信します。以下の対策が実装されています。
-
-- **Cookie 先取り**：CSV 取得前に市場ページを訪問してセッション Cookie を取得。
-- **リトライ（×3）**：失敗時に間隔を空けて最大 3 回再試行。
-- **curl フォールバック**：Python `requests` が失敗した場合、システムの `curl`（異なる TLS フィンガープリント）で試みる。
-- **1 日 2 回上限**：サーバーへのアクセスは 1 日最大 **2 回** に制限（`cache/mizuho_download_log.json` で管理）。上限に達した場合はキャッシュを使用。
-- **手動フォールバック**：自動ダウンロードが失敗した場合は、ブラウザで `https://www.mizuhobank.co.jp/market/quote.csv` を開き、`cache/mizuho_quote.csv` として保存してください。
-
-### 補足
-- WebView2 Runtime がない場合は警告が表示され、MSHTML で動作します。
-- MURC のレートはローカルに増分保存されます。
+みずほソースをローカルで使う場合は `.env.local` に `BLOB_READ_WRITE_TOKEN` を設定してください。
 
 ---
 
 ## 中文
 
 ### 概述
-FX Converter 是一个基于 CSV 汇率的外汇换算桌面 GUI 工具。  
-界面使用 HTML（pywebview），支持两种数据来源：
+FX Converter 是一个部署在 Vercel 上的网页版外汇换算工具。  
+支持三种数据来源，通过 JPY 枢轴计算交叉汇率。
 
-- 瑞穗银行 CSV（直接下载）
-- 三菱 UFJ 研究与咨询（MURC）历史汇率（增量抓取）
+### 数据来源
+| 来源 | 覆盖时段 | 汇率类型 |
+|---|---|---|
+| 瑞穗银行 | 2002-04-01 至今 | TTM |
+| ECB（Frankfurter） | 1999-01-04 至今 | 中间价 |
+| 三菱 MURC | 2014-01-01 至今 | TTM / TTS / TTB |
 
 ### 主要功能
-- 支持按日期 / 月份换算
-- 两种数据源（Mizuho / MURC）
-- MURC 汇率类型可选：TTM / TTS / TTB
-- 通过 JPY 计算交叉汇率
-- 本地缓存提升加载速度
-- 亮/暗主题切换
+- 支持按日期或月份换算
+- 通过 JPY 枢轴计算交叉汇率
+- 四舍五入 / 向上取整 / 向下取整，可配置小数位数
+- 表单变化时自动换算
+- 亮/暗主题，中英文界面切换
 
-### 运行环境
-- Windows 10/11 推荐
-- Python 3.8+ 推荐
-- 建议安装 WebView2 Runtime（缺失时会回退到 MSHTML）
+### 架构说明
+- **Next.js 15** App Router + TypeScript，部署在 **Vercel**
+- 所有汇率获取均在服务端（API 路由）
+- **瑞穗**: GitHub Actions 每日用 Playwright 下载 CSV（绕过 Akamai WAF），上传到 **Vercel Blob**，应用从 Blob 读取
+- **ECB**: 从 `api.frankfurter.app` 实时获取
+- **MURC**: 通过 `cheerio` 抓取 HTML
 
-### 安装
-创建虚拟环境并安装依赖（推荐：`bootstrap_env.py`）：
+### 部署步骤
+1. 推送到 GitHub，将仓库连接到 Vercel。
+2. 在 Vercel Storage 标签页创建 **Public** 访问的 Blob Store，连接到项目。
+3. 将 `BLOB_READ_WRITE_TOKEN` 添加为 GitHub Actions Secret。
+4. 在 Actions 标签页手动触发一次 **Fetch Mizuho CSV**。
+5. 在 Vercel 重新部署——三个数据来源均可正常使用。
 
+### 本地开发
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+npm install
+npm run dev
 ```
-
-或者使用引导脚本：
-
-```bash
-python bootstrap_env.py
-```
-
-### 运行
-```bash
-python fx_gui.py
-```
-
-### 打包（可选）
-```bash
-python bootstrap_env.py --with-pyinstaller
-pyinstaller fx_gui.spec
-```
-
-### 主要文件
-| 文件 | 说明 |
-|---|---|
-| `fx_gui.py` | 主程序 |
-| `ui/` | GUI 界面资源 |
-| `fx_gui.spec` | PyInstaller 打包配置 |
-| `bootstrap_env.py` | 创建 venv 并安装依赖 |
-| `requirements.txt` | Python 依赖 |
-| `user_config.json` | UI 设置（自动生成） |
-| `cache/mizuho_quote.csv` | 瑞穗汇率缓存（自动更新） |
-| `cache/mizuho_download_log.json` | 瑞穗每日下载次数记录 |
-| `cache/murc_kawase_daily.csv` | MURC 汇率缓存（自动更新） |
-| `cache/murc_last_date.txt` | MURC 增量抓取状态 |
-
-### 瑞穗下载说明
-从瑞穗银行服务器下载 `quote.csv` 时，程序使用接近真实浏览器的 HTTP 请求以绕过 WAF 机器人检测。
-已实施以下保障措施：
-
-- **Cookie 预取**：下载 CSV 前先访问市场首页获取 Session Cookie。
-- **重试（×3）**：失败时以递增间隔最多重试 3 次。
-- **curl 回退**：若 Python `requests` 失败，自动尝试系统自带的 `curl`（不同 TLS 指纹）。
-- **每日限制 2 次**：每天最多向服务器请求 **2 次**（记录于 `cache/mizuho_download_log.json`），超出后使用本地缓存。
-- **手动回退**：若自动下载失败，请用浏览器打开 `https://www.mizuhobank.co.jp/market/quote.csv`，另存为 `cache/mizuho_quote.csv`。
-
-### 备注
-- 如果未安装 WebView2 Runtime，会提示并回退到 MSHTML。
-- MURC 数据会增量抓取并存到本地。
+本地使用瑞穗来源需在 `.env.local` 中设置 `BLOB_READ_WRITE_TOKEN`。
