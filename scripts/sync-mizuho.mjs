@@ -12,11 +12,16 @@ import { put } from '@vercel/blob'
 const MIZUHO_URL = 'https://www.mizuhobank.co.jp/market/quote.csv'
 const REFERER   = 'https://www.mizuhobank.co.jp/market/index.html'
 
+if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  console.error('ERROR: BLOB_READ_WRITE_TOKEN environment variable is not set.')
+  process.exit(1)
+}
+
 async function download() {
   console.log('Launching Chromium…')
   const browser = await chromium.launch({
     headless: true,
-    args: ['--disable-blink-features=AutomationControlled'],
+    args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
   })
 
   const context = await browser.newContext({
@@ -33,21 +38,27 @@ async function download() {
   })
 
   // Visit the referrer page first to establish a real session + cookies
-  console.log('Visiting referrer…')
+  console.log('Visiting referrer page…')
   const page = await context.newPage()
   try {
-    await page.goto(REFERER, { waitUntil: 'domcontentloaded', timeout: 20000 })
+    await page.goto(REFERER, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    console.log('Referrer page loaded OK')
   } catch (e) {
     console.warn('Referrer visit failed (continuing):', e.message)
   }
 
   // Fetch CSV using the browser's authenticated request context
-  console.log('Downloading CSV…')
+  console.log(`Downloading CSV from ${MIZUHO_URL}…`)
   const response = await context.request.get(MIZUHO_URL, { timeout: 30000 })
 
+  const status = response.status()
+  console.log(`HTTP status: ${status}`)
+
   if (!response.ok()) {
+    const body = await response.text().catch(() => '(unreadable)')
+    console.error(`Response body (first 500 chars): ${body.slice(0, 500)}`)
     await browser.close()
-    throw new Error(`Mizuho returned HTTP ${response.status()}`)
+    throw new Error(`Mizuho returned HTTP ${status}`)
   }
 
   const body = await response.body()
