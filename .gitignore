@@ -1,3 +1,4 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
@@ -5,6 +6,12 @@ cache/
 build/
 dist/
 dist_webview2_v4/
+
+# Next.js
+.next/
+node_modules/
+out/
+npm-debug.log*
 
 # Local runtime/cache files
 murc_kawase_daily.csv
