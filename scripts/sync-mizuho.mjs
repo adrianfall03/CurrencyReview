@@ -68,18 +68,19 @@ async function download() {
 }
 
 async function upload(csvBuffer) {
-  // Delete existing file first to avoid overwrite errors
+  // Delete old blobs to avoid accumulation (keep storage clean)
   const { blobs } = await list({ prefix: 'mizuho-quote' })
   if (blobs.length > 0) {
     await del(blobs.map((b) => b.url))
-    console.log(`Deleted ${blobs.length} existing blob(s)`)
+    console.log(`Deleted ${blobs.length} old blob(s)`)
   }
 
   console.log('Uploading to Vercel Blob…')
+  // addRandomSuffix: true (default) avoids overwrite conflicts
+  // lib/mizuho.ts picks the latest by uploadedAt, so the suffix doesn't matter
   const blob = await put('mizuho-quote.csv', csvBuffer, {
     access: 'public',
     contentType: 'text/csv',
-    addRandomSuffix: false,
   })
   console.log(`Uploaded: ${blob.url}`)
   return blob.url
