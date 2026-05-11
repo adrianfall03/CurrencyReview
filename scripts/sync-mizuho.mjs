@@ -72,7 +72,8 @@ async function upload(csvBuffer) {
   const blob = await put('mizuho-quote.csv', csvBuffer, {
     access: 'public',
     contentType: 'text/csv',
-    addRandomSuffix: false, // always same URL so the app can find it
+    addRandomSuffix: false,
+    allowOverwrite: true,
   })
   console.log(`Uploaded: ${blob.url}`)
   return blob.url
