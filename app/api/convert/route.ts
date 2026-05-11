@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getMizuhoData } from '@/lib/mizuho'
 import { getFrankfurterRates } from '@/lib/frankfurter'
 import { getMurcRates } from '@/lib/murc'
 import { convertAmount, formatNumber } from '@/lib/rates'
@@ -59,7 +60,12 @@ export async function POST(req: NextRequest) {
     let sortedDates: string[]
     let sourceLabel: string
 
-    if (source === 'ecb') {
+    if (source === 'mizuho') {
+      const data = await getMizuhoData()
+      rateMap = data.rateMap
+      sortedDates = data.sortedDates
+      sourceLabel = 'Mizuho TTM'
+    } else if (source === 'ecb') {
       const data = await getFrankfurterRates(targetDate)
       if (!data) {
         return NextResponse.json<ConvertResponse>({

@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache'
+import { list } from '@vercel/blob'
 import { RateMap } from './rates'
 
 export interface MizuhoData {
@@ -19,19 +20,12 @@ function normalizeDate(raw: string): string | null {
 }
 
 function parseMizuhoCSV(text: string): MizuhoData {
-  // Normalize line endings
   const lines = text.split(/\r?\n/)
 
-  // Find the header row (first row with a comma-separated date-like first column)
-  // Original Python: skiprows=2, header=0 → rows 0,1 skipped, row 2 is header, rows 3+ are data
+  // Find header row (first row with many comma-separated columns)
   let headerIdx = -1
   for (let i = 0; i < Math.min(10, lines.length); i++) {
-    const cols = lines[i].split(',')
-    // Header has many columns (>5) and the first cell is date-like or a label
-    if (cols.length > 5) {
-      headerIdx = i
-      break
-    }
+    if (lines[i].split(',').length > 5) { headerIdx = i; break }
   }
   if (headerIdx < 0) throw new Error('Could not find CSV header')
 
@@ -39,7 +33,7 @@ function parseMizuhoCSV(text: string): MizuhoData {
     .split(',')
     .map((h) => h.trim().replace(/^["']+|["']+$/g, ''))
 
-  // Build column groups: handle ".1" duplicate suffix like Python does
+  // Group duplicate ".1" columns (Mizuho CSV convention)
   const groups: { [base: string]: number[] } = {}
   for (let i = 1; i < headerCols.length; i++) {
     const col = headerCols[i]
@@ -69,10 +63,7 @@ function parseMizuhoCSV(text: string): MizuhoData {
         const raw = cols[idx] ?? ''
         if (!raw) continue
         const n = parseFloat(raw)
-        if (!isNaN(n)) {
-          val = n
-          break
-        }
+        if (!isNaN(n)) { val = n; break }
       }
       rates[base] = val
       if (val !== null) currencySet.add(base)
@@ -95,46 +86,37 @@ function parseMizuhoCSV(text: string): MizuhoData {
 }
 
 async function _fetchMizuho(): Promise<MizuhoData> {
-  const url = 'https://www.mizuhobank.co.jp/market/quote.csv'
+  // Find the CSV uploaded by GitHub Actions in Vercel Blob
+  const { blobs } = await list({ prefix: 'mizuho-quote' })
 
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      Referer: 'https://www.mizuhobank.co.jp/market/index.html',
-      'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"Windows"',
-    },
-    next: { revalidate: 86400, tags: ['mizuho-rates'] },
-  })
-
-  if (!res.ok) {
+  if (blobs.length === 0) {
     throw new Error(
-      `Mizuho server returned HTTP ${res.status}. The server may be blocking automated requests. ` +
-        `Please try again later.`
+      'Mizuho CSV not found in Blob storage. ' +
+      'Please trigger the GitHub Actions workflow "Fetch Mizuho CSV" manually from the Actions tab.'
     )
   }
+
+  // Use the most recently uploaded file
+  const latest = blobs.sort(
+    (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+  )[0]
+
+  const res = await fetch(latest.url, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Blob fetch failed: HTTP ${res.status}`)
 
   const buffer = await res.arrayBuffer()
 
   for (const enc of ['shift-jis', 'utf-8-sig', 'utf-8'] as const) {
     try {
       const text = new TextDecoder(enc).decode(buffer)
-      if (text.length > 100 && text.includes(',')) {
-        return parseMizuhoCSV(text)
-      }
-    } catch {
-      continue
-    }
+      if (text.length > 100 && text.includes(',')) return parseMizuhoCSV(text)
+    } catch { continue }
   }
 
-  throw new Error('Failed to decode Mizuho CSV — unsupported encoding')
+  throw new Error('Failed to decode Mizuho CSV')
 }
 
-export const getMizuhoData = unstable_cache(_fetchMizuho, ['mizuho-rates'], {
-  revalidate: 86400,
+export const getMizuhoData = unstable_cache(_fetchMizuho, ['mizuho-blob-rates'], {
+  revalidate: 3600, // re-check Blob every hour; GitHub Actions uploads daily
   tags: ['mizuho-rates'],
 })

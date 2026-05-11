@@ -1,4 +1,4 @@
-export type Source = 'ecb' | 'murc'
+export type Source = 'mizuho' | 'ecb' | 'murc'
 export type RateBasis = 'ttm' | 'tts' | 'ttb'
 export type RoundingMode = 'half_up' | 'up' | 'down'
 export type DateMode = 'day' | 'month'
