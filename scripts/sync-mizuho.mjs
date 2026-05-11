@@ -7,7 +7,7 @@
  */
 
 import { chromium } from 'playwright'
-import { put } from '@vercel/blob'
+import { put, del, list } from '@vercel/blob'
 
 const MIZUHO_URL = 'https://www.mizuhobank.co.jp/market/quote.csv'
 const REFERER   = 'https://www.mizuhobank.co.jp/market/index.html'
@@ -68,12 +68,18 @@ async function download() {
 }
 
 async function upload(csvBuffer) {
+  // Delete existing file first to avoid overwrite errors
+  const { blobs } = await list({ prefix: 'mizuho-quote' })
+  if (blobs.length > 0) {
+    await del(blobs.map((b) => b.url))
+    console.log(`Deleted ${blobs.length} existing blob(s)`)
+  }
+
   console.log('Uploading to Vercel Blob…')
   const blob = await put('mizuho-quote.csv', csvBuffer, {
     access: 'public',
     contentType: 'text/csv',
     addRandomSuffix: false,
-    allowOverwrite: true,
   })
   console.log(`Uploaded: ${blob.url}`)
   return blob.url
