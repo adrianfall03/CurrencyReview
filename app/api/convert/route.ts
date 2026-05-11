@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getMizuhoData } from '@/lib/mizuho'
+import { getFrankfurterRates } from '@/lib/frankfurter'
 import { getMurcRates } from '@/lib/murc'
 import { convertAmount, formatNumber } from '@/lib/rates'
 import { ConvertRequest, ConvertResponse } from '@/lib/types'
 
 export const runtime = 'nodejs'
 
-function lastBusinessDayOfMonth(year: number, month: number): string {
-  // month: 1-indexed
+function lastBusinessDay(year: number, month: number): string {
   let d = new Date(Date.UTC(year, month, 0)) // last day of month
   while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
     d.setUTCDate(d.getUTCDate() - 1)
@@ -17,11 +16,10 @@ function lastBusinessDayOfMonth(year: number, month: number): string {
 
 function resolveDate(req: ConvertRequest): string {
   if (req.dateMode === 'day') return req.day
-  // month mode: find last business day of the month
   const y = parseInt(req.year, 10)
   const m = parseInt(req.month, 10)
   if (isNaN(y) || isNaN(m)) return ''
-  return lastBusinessDayOfMonth(y, m)
+  return lastBusinessDay(y, m)
 }
 
 function fmt6(n: number) {
@@ -36,29 +34,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const {
-    source,
-    from,
-    to,
-    basis,
-    amount: amountStr,
-    rounding,
-    decimals: decimalsStr,
-  } = body
+  const { source, from, to, basis, amount: amountStr, rounding, decimals: decimalsStr } = body
 
   const amount = parseFloat(String(amountStr).replace(/,/g, ''))
   if (isNaN(amount)) {
     return NextResponse.json<ConvertResponse>({
-      result: '-',
-      usedDate: '-',
-      selDate: '-',
-      rateFrom: '-',
-      rateTo: '-',
-      rateCross: '-',
-      auditSummary: '-',
-      rateInfo: '-',
-      fallback: '',
-      error: 'Invalid amount',
+      result: '-', usedDate: '-', selDate: '-', rateFrom: '-', rateTo: '-',
+      rateCross: '-', auditSummary: '-', rateInfo: '-', fallback: '', error: 'Invalid amount',
     })
   }
 
@@ -67,16 +49,8 @@ export async function POST(req: NextRequest) {
 
   if (!targetDate) {
     return NextResponse.json<ConvertResponse>({
-      result: '-',
-      usedDate: '-',
-      selDate: '-',
-      rateFrom: '-',
-      rateTo: '-',
-      rateCross: '-',
-      auditSummary: '-',
-      rateInfo: '-',
-      fallback: '',
-      error: 'Invalid date selection',
+      result: '-', usedDate: '-', selDate: '-', rateFrom: '-', rateTo: '-',
+      rateCross: '-', auditSummary: '-', rateInfo: '-', fallback: '', error: 'Invalid date selection',
     })
   }
 
@@ -85,62 +59,50 @@ export async function POST(req: NextRequest) {
     let sortedDates: string[]
     let sourceLabel: string
 
-    if (source === 'mizuho') {
-      const data = await getMizuhoData()
+    if (source === 'ecb') {
+      const data = await getFrankfurterRates(targetDate)
+      if (!data) {
+        return NextResponse.json<ConvertResponse>({
+          result: '-', usedDate: '-', selDate: targetDate, rateFrom: '-', rateTo: '-',
+          rateCross: '-', auditSummary: '-', rateInfo: '-', fallback: '',
+          error: `No ECB rate data found for or before ${targetDate}`,
+        })
+      }
       rateMap = data.rateMap
       sortedDates = data.sortedDates
-      sourceLabel = 'Mizuho TTM'
+      sourceLabel = 'ECB Mid'
     } else {
-      const murcData = await getMurcRates(targetDate, basis ?? 'ttm')
-      if (!murcData) {
+      const data = await getMurcRates(targetDate, basis ?? 'ttm')
+      if (!data) {
         return NextResponse.json<ConvertResponse>({
-          result: '-',
-          usedDate: '-',
-          selDate: targetDate,
-          rateFrom: '-',
-          rateTo: '-',
-          rateCross: '-',
-          auditSummary: '-',
-          rateInfo: '-',
-          fallback: '',
+          result: '-', usedDate: '-', selDate: targetDate, rateFrom: '-', rateTo: '-',
+          rateCross: '-', auditSummary: '-', rateInfo: '-', fallback: '',
           error: `No MURC rate data found for or before ${targetDate}`,
         })
       }
-      rateMap = murcData.rateMap
-      sortedDates = murcData.sortedDates
+      rateMap = data.rateMap
+      sortedDates = data.sortedDates
       sourceLabel = `MURC ${(basis ?? 'ttm').toUpperCase()}`
     }
 
     const out = convertAmount(rateMap, sortedDates, from, to, targetDate, amount)
-
     const resultStr = formatNumber(out.result, decimals, rounding ?? 'half_up')
     const usedDate = out.usedDate ?? '-'
     const cross = out.cross
 
     const crossStr = cross !== null ? `1 ${from} = ${cross.toFixed(8)} ${to}` : 'N/A'
-    const rateFromStr =
-      out.jpyPerFrom !== undefined
-        ? `${fmt6(out.jpyPerFrom)} JPY per 1 ${from}`
-        : 'N/A'
-    const rateToStr =
-      out.jpyPerTo !== undefined
-        ? `${fmt6(out.jpyPerTo)} JPY per 1 ${to}`
-        : 'N/A'
+    const rateFromStr = out.jpyPerFrom !== undefined ? `${fmt6(out.jpyPerFrom)} JPY per 1 ${from}` : 'N/A'
+    const rateToStr   = out.jpyPerTo   !== undefined ? `${fmt6(out.jpyPerTo)}   JPY per 1 ${to}`   : 'N/A'
 
-    const summaryRate =
-      cross !== null
-        ? cross.toLocaleString('en-US', {
-            minimumFractionDigits: to === 'JPY' ? 2 : 6,
-            maximumFractionDigits: to === 'JPY' ? 2 : 6,
-          })
-        : '-'
+    const summaryRate = cross !== null
+      ? cross.toLocaleString('en-US', {
+          minimumFractionDigits: to === 'JPY' ? 2 : 6,
+          maximumFractionDigits: to === 'JPY' ? 2 : 6,
+        })
+      : '-'
 
-    const amountFmt = amount.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
+    const amountFmt = amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     const auditSummary = `${sourceLabel} | ${usedDate}\n${from} ${amountFmt} @ ${to} ${summaryRate}`
-
     const rateInfo =
       `Rate basis: ${sourceLabel} | Source: ${source}\n` +
       `From rate: ${from} -> JPY = ${rateFromStr} | Used date: ${out.usedDateFrom ?? '-'}\n` +
@@ -167,16 +129,8 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     return NextResponse.json<ConvertResponse>({
-      result: '-',
-      usedDate: '-',
-      selDate: targetDate,
-      rateFrom: '-',
-      rateTo: '-',
-      rateCross: '-',
-      auditSummary: '-',
-      rateInfo: msg,
-      fallback: '',
-      error: msg,
+      result: '-', usedDate: '-', selDate: targetDate, rateFrom: '-', rateTo: '-',
+      rateCross: '-', auditSummary: '-', rateInfo: msg, fallback: '', error: msg,
     })
   }
 }

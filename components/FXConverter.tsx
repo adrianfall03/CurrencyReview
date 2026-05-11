@@ -9,7 +9,7 @@ import { ConvertRequest, ConvertResponse, CurrenciesResponse, DateMode, RateBasi
 const I18N = {
   en: {
     app_title: 'FX Converter',
-    app_subtitle: 'Accounting-friendly FX rates (Mizuho / Mitsubishi MURC)',
+    app_subtitle: 'Accounting-friendly FX rates (ECB / Mitsubishi MURC)',
     label_source: 'Data source',
     label_provider: 'Provider',
     label_rate_basis: 'Rate basis (TTM / TTS / TTB)',
@@ -48,7 +48,7 @@ const I18N = {
     loaded_yes: 'Rates loaded',
     loaded_no: 'No rates loaded',
     not_loaded: 'Not loaded',
-    source_mizuho: 'Mizuho (quote.csv)',
+    source_ecb: 'ECB (Frankfurter)',
     source_murc: 'Mitsubishi (MURC)',
     basis_ttm: 'TTM (mid rate)',
     basis_tts: 'TTS (Telegraphic Transfer Selling)',
@@ -56,7 +56,7 @@ const I18N = {
   },
   ja: {
     app_title: '為替換算',
-    app_subtitle: '会計向け為替レート（みずほ / 三菱MURC）',
+    app_subtitle: '会計向け為替レート（ECB / 三菱MURC）',
     label_source: 'データソース',
     label_provider: '提供元',
     label_rate_basis: 'レート区分（TTM / TTS / TTB）',
@@ -95,7 +95,7 @@ const I18N = {
     loaded_yes: 'レート読込済み',
     loaded_no: '未読込',
     not_loaded: '未読込',
-    source_mizuho: 'みずほ（quote.csv）',
+    source_ecb: 'ECB（Frankfurter）',
     source_murc: '三菱MURC',
     basis_ttm: 'TTM（仲値）',
     basis_tts: 'TTS（電信売相場）',
@@ -157,7 +157,7 @@ export default function FXConverter() {
   const [lang, setLang] = useState<Lang>('en')
 
   // ---------- form state ----------
-  const [source, setSource] = useState<Source>('mizuho')
+  const [source, setSource] = useState<Source>('ecb')
   const [basis, setBasis] = useState<RateBasis>('ttm')
   const [from, setFrom] = useState('JPY')
   const [to, setTo] = useState('USD')
@@ -210,7 +210,7 @@ export default function FXConverter() {
   useEffect(() => {
     document.documentElement.setAttribute(
       'data-brand',
-      source === 'murc' ? 'murc' : 'mizuho'
+      source === 'murc' ? 'murc' : 'ecb'
     )
   }, [source])
 
@@ -234,7 +234,7 @@ export default function FXConverter() {
         setMinDate(data.minDate)
         setMaxDate(data.maxDate)
         setLoaded(true)
-        setLoadedLabel(src === 'mizuho' ? t('source_mizuho') : t('source_murc'))
+        setLoadedLabel(src === 'ecb' ? t('source_ecb') : t('source_murc'))
 
         // Set defaults if not already set
         setFrom((prev) => (data.currencies.includes(prev) ? prev : 'JPY'))
@@ -260,7 +260,7 @@ export default function FXConverter() {
   )
 
   useEffect(() => {
-    loadCurrencies('mizuho')
+    loadCurrencies('ecb')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -395,7 +395,7 @@ export default function FXConverter() {
       {loading && (
         <div className="progress-wrap">
           <div className="progress-label">
-            {source === 'mizuho' ? t('btn_refreshing') : t('btn_refreshing')}
+            {t('btn_refreshing')}
           </div>
           <div className="progress-bar">
             <div className="progress-fill" />
@@ -420,7 +420,7 @@ export default function FXConverter() {
                     disabled={loading}
                     style={{ minWidth: 220 }}
                   >
-                    <option value="mizuho">{t('source_mizuho')}</option>
+                    <option value="ecb">{t('source_ecb')}</option>
                     <option value="murc">{t('source_murc')}</option>
                   </select>
                 </div>

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
-import { getMizuhoData } from '@/lib/mizuho'
+import { getFrankfurterCurrencies } from '@/lib/frankfurter'
 import { getMurcCurrencies } from '@/lib/murc'
 import { CurrenciesResponse } from '@/lib/types'
 
@@ -8,41 +7,29 @@ export const runtime = 'nodejs'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const source = searchParams.get('source') ?? 'mizuho'
-  const refresh = searchParams.get('refresh') === 'true'
+  const source = searchParams.get('source') ?? 'ecb'
 
   try {
-    if (source === 'mizuho') {
-      if (refresh) revalidateTag('mizuho-rates')
+    if (source === 'ecb') {
+      const currencies = await getFrankfurterCurrencies()
+      const today = new Date().toISOString().slice(0, 10)
+      // ECB data goes back to 1999-01-04
+      const minDate = '1999-01-04'
+      const years: string[] = []
+      for (let y = 1999; y <= new Date().getFullYear(); y++) years.push(String(y))
 
-      const data = await getMizuhoData()
-      const years = [...new Set(data.sortedDates.map((d) => d.slice(0, 4)))].sort()
-
-      const res: CurrenciesResponse = {
-        currencies: data.currencies,
-        minDate: data.minDate,
-        maxDate: data.maxDate,
-        years,
-      }
+      const res: CurrenciesResponse = { currencies, minDate, maxDate: today, years }
       return NextResponse.json(res)
     }
 
     if (source === 'murc') {
       const currencies = await getMurcCurrencies()
       const today = new Date().toISOString().slice(0, 10)
-      // MURC historical data goes back to ~2014
       const minDate = '2014-01-01'
       const years: string[] = []
-      const startYear = 2014
-      const endYear = new Date().getFullYear()
-      for (let y = startYear; y <= endYear; y++) years.push(String(y))
+      for (let y = 2014; y <= new Date().getFullYear(); y++) years.push(String(y))
 
-      const res: CurrenciesResponse = {
-        currencies,
-        minDate,
-        maxDate: today,
-        years,
-      }
+      const res: CurrenciesResponse = { currencies, minDate, maxDate: today, years }
       return NextResponse.json(res)
     }
 
