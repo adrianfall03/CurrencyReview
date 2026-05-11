@@ -86,8 +86,20 @@ function parseMizuhoCSV(text: string): MizuhoData {
 }
 
 async function _fetchMizuho(): Promise<MizuhoData> {
-  // Find the CSV uploaded by GitHub Actions in Vercel Blob
-  const { blobs } = await list({ prefix: 'mizuho-quote' })
+  let blobs: Awaited<ReturnType<typeof list>>['blobs']
+  try {
+    ;({ blobs } = await list({ prefix: 'mizuho-quote' }))
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.includes('No token found') || msg.includes('BLOB_READ_WRITE_TOKEN')) {
+      throw new Error(
+        'Vercel Blob is not configured. ' +
+        'Go to your Vercel project → Storage → Create Blob store, ' +
+        'then add BLOB_READ_WRITE_TOKEN to your environment variables and redeploy.'
+      )
+    }
+    throw e
+  }
 
   if (blobs.length === 0) {
     throw new Error(
