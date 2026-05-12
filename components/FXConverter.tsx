@@ -206,6 +206,7 @@ export default function FXConverter() {
   const [detailsOpen, setDetailsOpen] = useState(false)
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const typingAmount = useRef(false)
   const t = useT(lang)
 
   // init theme / lang / history from localStorage
@@ -267,8 +268,8 @@ export default function FXConverter() {
       setResult(data)
       if (data.error) {
         setStatusMsg(data.error); setStatusType('error')
-      } else if (data.result && data.result !== '-') {
-        // Save to history
+      } else if (!typingAmount.current && data.result && data.result !== '-') {
+        // Save to history only when amount is finalized (blur / Enter), not while typing
         const parts = data.result.split(/\s{2,}/)
         const entry: HistoryEntry = {
           id: String(Date.now()),
@@ -315,6 +316,7 @@ export default function FXConverter() {
   function handleAmountBlur() {
     const n = parseFloat(amount.replace(/,/g, ''))
     if (!isNaN(n)) setAmount(n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+    typingAmount.current = false
     doConvert()
   }
   function handleCopy() {
@@ -527,9 +529,9 @@ export default function FXConverter() {
                   type="text"
                   value={amount}
                   placeholder="10,000"
-                  onChange={e => { setAmount(e.target.value); scheduleConvert() }}
+                  onChange={e => { setAmount(e.target.value); typingAmount.current = true; scheduleConvert() }}
                   onBlur={handleAmountBlur}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); doConvert() } }}
+                  onKeyDown={e => { if (e.key === 'Enter') { typingAmount.current = false; e.currentTarget.blur(); doConvert() } }}
                 />
               </div>
               <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--ink-3)' }}>{t('hint_amount')}</div>
