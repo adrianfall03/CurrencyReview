@@ -550,8 +550,7 @@ input, select, textarea {
 /* ─── Result display ─────────────────────────────────────────── */
 .result-display {
   padding: 14px 22px 20px;
-  border-bottom: 1px solid var(--border-2);
-  min-height: 96px;
+  min-height: 72px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -595,7 +594,7 @@ input, select, textarea {
 }
 
 /* ─── Rate table ─────────────────────────────────────────────── */
-.rate-table { padding: 2px 22px 0; }
+.rate-table { padding: 2px 22px 0; border-top: 1px solid var(--border-2); }
 
 .rate-row {
   display: flex;
