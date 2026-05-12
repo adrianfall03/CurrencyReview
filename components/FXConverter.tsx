@@ -577,7 +577,22 @@ export default function FXConverter() {
                     )}
                   </>
                 ) : (
-                  <div className="result-placeholder">{t('hint_result')}</div>
+                  <div className="result-empty">
+                    <svg className="result-empty-icon" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="1.5"
+                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M16 3l4 4-4 4" /><path d="M20 7H4" />
+                      <path d="M8 21l-4-4 4-4" /><path d="M4 17h16" />
+                    </svg>
+                    <div className="result-empty-pair">
+                      {flagUrl(from) && <img src={flagUrl(from)!} alt="" className="result-empty-flag" width={22} height={15} />}
+                      <span>{from}</span>
+                      <span className="result-empty-arrow">→</span>
+                      {flagUrl(to) && <img src={flagUrl(to)!} alt="" className="result-empty-flag" width={22} height={15} />}
+                      <span>{to}</span>
+                    </div>
+                    <p className="result-empty-hint">{t('hint_result')}</p>
+                  </div>
                 )}
               </div>
 

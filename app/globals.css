@@ -564,6 +564,47 @@ input, select, textarea {
   padding: 12px 0;
 }
 
+.result-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 0 20px;
+}
+
+.result-empty-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--accent-2);
+  opacity: 0.65;
+}
+
+.result-empty-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.result-empty-flag {
+  border-radius: 2px;
+  display: block;
+}
+
+.result-empty-arrow {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 0 2px;
+}
+
+.result-empty-hint {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 0;
+}
+
 .result-num {
   font-size: 46px;
   font-weight: 700;
