@@ -190,9 +190,19 @@ body {
   border: 1px solid;
   white-space: nowrap;
 }
-.status-badge.ok  { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-bdr); }
-.status-badge.off { background: var(--surface); color: var(--ink-3); border-color: var(--border); }
+.status-badge.ok      { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-bdr); }
+.status-badge.off     { background: var(--surface); color: var(--ink-3); border-color: var(--border); }
+.status-badge.loading { background: var(--surface); color: var(--ink-2); border-color: var(--border); }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.status-spinner {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-2);
+  border-top-color: var(--ink-2);
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
 
 /* ─── Alert ──────────────────────────────────────────────────── */
 .alert {
@@ -256,6 +266,20 @@ body {
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.source-basis-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.basis-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .source-meta {
@@ -340,6 +364,44 @@ select:focus, input:focus {
 }
 
 input[type="text"] { font-variant-numeric: tabular-nums; }
+
+/* ─── Amount input with currency prefix ──────────────────────── */
+.input-affix-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-affix-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+}
+.input-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border-2);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.4px;
+}
+.input-affix-wrap input {
+  flex: 1;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  min-width: 0;
+}
+.input-affix-wrap input:focus {
+  outline: none;
+}
 
 input, select, textarea {
   -webkit-user-select: text;
@@ -468,14 +530,26 @@ input, select, textarea {
   letter-spacing: -1.5px;
   line-height: 1.0;
   font-variant-numeric: tabular-nums;
+  transition: font-size 0.18s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .result-ccy {
   font-size: 18px;
   font-weight: 600;
   color: var(--ink-2);
-  margin-top: 4px;
+  margin-top: 6px;
   letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.result-flag {
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 /* ─── Rate table ─────────────────────────────────────────────── */
@@ -498,6 +572,36 @@ input, select, textarea {
 .summary-section {
   padding: 14px 22px 18px;
   border-top: 1px solid var(--border-2);
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.copy-btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent-bdr);
+  color: var(--accent);
+}
+.copy-btn.copied {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-bdr);
+}
+.copy-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .summary-pre {

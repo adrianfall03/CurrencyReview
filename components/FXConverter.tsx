@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ConvertRequest, ConvertResponse, CurrenciesResponse, DateMode, RateBasis, RoundingMode, Source } from '@/lib/types'
 import CurrencySelect from './CurrencySelect'
+import { flagUrl } from '@/lib/flags'
 
 // ─── i18n ─────────────────────────────────────────────────────
 const I18N = {
@@ -10,33 +11,23 @@ const I18N = {
     app_title: 'FX Converter',
     app_subtitle: 'Accounting-grade rates · Mizuho / ECB / MURC',
     label_source: 'Data Source',
-    label_provider: 'Provider',
-    label_rate_basis: 'Rate basis (TTM / TTS / TTB)',
+    label_rate_basis: 'Rate basis',
     btn_refresh: 'Refresh',
     btn_refreshing: 'Refreshing…',
-    label_loaded: 'Loaded:',
-    label_current_basis: 'Current basis:',
+    btn_loading: 'Loading…',
     label_from: 'From',
     label_to: 'To',
-    btn_swap: '⇄',
+    btn_swap: 'Swap currencies',
     label_date_mode: 'Date',
     opt_day: 'Day',
     opt_month: 'Month',
-    label_day: 'Day',
-    label_year: 'Year',
-    label_month: 'Month',
     btn_latest: 'Use latest',
     range_available: '{min} — {max}',
     label_amount: 'Amount',
     hint_amount: 'Auto-converts on change · Enter or blur to format',
     label_result: 'Result',
     hint_result: 'Select currencies and a date to see conversion.',
-    label_used_rate_date: 'Rate date',
-    label_basis: 'Basis',
     label_resolved_date: 'Resolved date',
-    label_from_jpy: 'From → JPY',
-    label_to_jpy: 'To → JPY',
-    label_cross: 'Cross rate',
     label_result_rounding: 'Rounding',
     label_result_decimals: 'Decimals',
     rounding_half_up: 'Half up',
@@ -44,6 +35,8 @@ const I18N = {
     rounding_down: 'Floor',
     label_auto_summary: 'Audit summary',
     label_rate_details: 'Rate details',
+    btn_copy: 'Copy',
+    btn_copied: '✓ Copied',
     loaded_yes: 'Rates loaded',
     loaded_no: 'Not loaded',
     not_loaded: 'Not loaded',
@@ -58,33 +51,23 @@ const I18N = {
     app_title: '為替換算',
     app_subtitle: '会計向けレート · みずほ / ECB / 三菱MURC',
     label_source: 'データソース',
-    label_provider: '提供元',
-    label_rate_basis: 'レート区分（TTM / TTS / TTB）',
+    label_rate_basis: 'レート区分',
     btn_refresh: '更新',
     btn_refreshing: '更新中…',
-    label_loaded: '読込元：',
-    label_current_basis: '現在の区分：',
+    btn_loading: '読込中…',
     label_from: '換算元',
     label_to: '換算先',
-    btn_swap: '⇄',
+    btn_swap: '通貨を入替',
     label_date_mode: '日付',
     opt_day: '日付指定',
     opt_month: '月次',
-    label_day: '日付',
-    label_year: '年',
-    label_month: '月',
     btn_latest: '最新を使う',
     range_available: '{min} — {max}',
     label_amount: '金額',
     hint_amount: '変更時に自動換算 · Enter/フォーカス外で整形',
     label_result: '換算結果',
     hint_result: '通貨と日付を選択すると結果が表示されます。',
-    label_used_rate_date: 'レート日',
-    label_basis: '区分',
     label_resolved_date: '適用日',
-    label_from_jpy: '換算元 → JPY',
-    label_to_jpy: '換算先 → JPY',
-    label_cross: 'クロスレート',
     label_result_rounding: '丸め',
     label_result_decimals: '小数桁数',
     rounding_half_up: '四捨五入',
@@ -92,6 +75,8 @@ const I18N = {
     rounding_down: '切り捨て',
     label_auto_summary: '監査サマリー',
     label_rate_details: 'レート詳細',
+    btn_copy: 'コピー',
+    btn_copied: '✓ コピー済',
     loaded_yes: 'レート読込済み',
     loaded_no: '未読込',
     not_loaded: '未読込',
@@ -143,6 +128,17 @@ function GlobeIcon() {
   )
 }
 
+function SwapIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
+      fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 3l4 4-4 4" /><path d="M20 7H4" />
+      <path d="M8 21l-4-4 4-4" /><path d="M4 17h16" />
+    </svg>
+  )
+}
+
 function ChevronIcon() {
   return (
     <svg className="chevron-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -166,6 +162,7 @@ export default function FXConverter() {
   const [amount, setAmount] = useState('')
   const [rounding, setRounding] = useState<RoundingMode>('half_up')
   const [decimals, setDecimals] = useState('2')
+  const [copied, setCopied] = useState(false)
 
   const [currencies, setCurrencies] = useState<string[]>(['JPY', 'USD'])
   const [years, setYears]   = useState<string[]>([])
@@ -268,6 +265,13 @@ export default function FXConverter() {
     if (!isNaN(n)) setAmount(n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
     doConvert()
   }
+  function handleCopy() {
+    if (!result?.auditSummary || result.auditSummary === '—') return
+    navigator.clipboard.writeText(result.auditSummary).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next); localStorage.setItem('fx-theme', next)
@@ -286,9 +290,16 @@ export default function FXConverter() {
     return [parts[0] ?? '—', parts[1] ?? '']
   })()
 
+  // scale font size down for long numbers to prevent overflow
+  const resultNumFontSize =
+    resultNum.length > 18 ? '22px' :
+    resultNum.length > 14 ? '28px' :
+    resultNum.length > 10 ? '36px' : '46px'
+
+  const toFlagUrl = flagUrl(to)
+
   return (
     <>
-      {/* Page-top loading bar */}
       {loading && (
         <div className="page-bar">
           <div className="page-bar-fill" />
@@ -312,9 +323,12 @@ export default function FXConverter() {
             <button className="icon-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
-            <div className={`status-badge ${loaded ? 'ok' : 'off'}`}>
-              <span className="status-dot" />
-              {loaded ? t('loaded_yes') : t('loaded_no')}
+            <div className={`status-badge ${loading ? 'loading' : loaded ? 'ok' : 'off'}`}>
+              {loading
+                ? <span className="status-spinner" />
+                : <span className="status-dot" />
+              }
+              {loading ? t('btn_loading') : loaded ? t('loaded_yes') : t('loaded_no')}
             </div>
           </div>
         </header>
@@ -346,24 +360,26 @@ export default function FXConverter() {
                   <option value="ecb">{t('source_ecb')}</option>
                   <option value="murc">{t('source_murc')}</option>
                 </select>
+                <button className="btn" onClick={() => loadCurrencies(source, true)} disabled={loading}>
+                  {loading ? <><span className="spinner" />{t('btn_refreshing')}</> : t('btn_refresh')}
+                </button>
+              </div>
 
-                {source === 'murc' && (
+              {source === 'murc' && (
+                <div className="source-basis-row">
+                  <span className="basis-label">{t('label_rate_basis')}</span>
                   <select
                     value={basis}
                     onChange={e => setBasis(e.target.value as RateBasis)}
                     disabled={loading}
-                    style={{ flex: '1 1 160px' }}
+                    style={{ flex: 1 }}
                   >
                     <option value="ttm">{t('basis_ttm')}</option>
                     <option value="tts">{t('basis_tts')}</option>
                     <option value="ttb">{t('basis_ttb')}</option>
                   </select>
-                )}
-
-                <button className="btn" onClick={() => loadCurrencies(source, true)} disabled={loading}>
-                  {loading ? <><span className="spinner" />{t('btn_refreshing')}</> : t('btn_refresh')}
-                </button>
-              </div>
+                </div>
+              )}
 
               <div className="source-meta">
                 {loaded ? (
@@ -386,7 +402,7 @@ export default function FXConverter() {
                   <CurrencySelect value={from} onChange={setFrom} options={currencies} disabled={loading} />
                 </div>
                 <button className="swap-btn" onClick={handleSwap} disabled={loading} title={t('btn_swap')}>
-                  ⇄
+                  <SwapIcon />
                 </button>
                 <div className="pair-field">
                   <div className="pair-label">{t('label_to')}</div>
@@ -442,15 +458,17 @@ export default function FXConverter() {
             {/* Amount */}
             <div className="ctrl-section">
               <div className="section-label">{t('label_amount')}</div>
-              <input
-                type="text"
-                value={amount}
-                placeholder="10,000"
-                onChange={e => { setAmount(e.target.value); scheduleConvert() }}
-                onBlur={handleAmountBlur}
-                onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); doConvert() } }}
-                style={{ width: '100%' }}
-              />
+              <div className="input-affix-wrap">
+                <span className="input-prefix">{from}</span>
+                <input
+                  type="text"
+                  value={amount}
+                  placeholder="10,000"
+                  onChange={e => { setAmount(e.target.value); scheduleConvert() }}
+                  onBlur={handleAmountBlur}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); doConvert() } }}
+                />
+              </div>
               <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--ink-3)' }}>{t('hint_amount')}</div>
             </div>
 
@@ -487,8 +505,13 @@ export default function FXConverter() {
             <div className="result-display">
               {resultNum !== '—' ? (
                 <>
-                  <div className="result-num">{resultNum}</div>
-                  {resultCcy && <div className="result-ccy">{resultCcy}</div>}
+                  <div className="result-num" style={{ fontSize: resultNumFontSize }}>{resultNum}</div>
+                  {resultCcy && (
+                    <div className="result-ccy">
+                      {toFlagUrl && <img src={toFlagUrl} alt="" className="result-flag" width={24} height={17} />}
+                      {resultCcy}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="result-placeholder">{t('hint_result')}</div>
@@ -501,21 +524,30 @@ export default function FXConverter() {
                 <span className="rate-val">{result?.selDate ?? '—'}</span>
               </div>
               <div className="rate-row">
-                <span className="rate-key">{t('label_from_jpy')}</span>
+                <span className="rate-key">{from} → JPY</span>
                 <span className="rate-val">{result?.rateFrom ?? '—'}</span>
               </div>
               <div className="rate-row">
-                <span className="rate-key">{t('label_to_jpy')}</span>
+                <span className="rate-key">{to} → JPY</span>
                 <span className="rate-val">{result?.rateTo ?? '—'}</span>
               </div>
               <div className="rate-row">
-                <span className="rate-key">{t('label_cross')}</span>
+                <span className="rate-key">{from}/{to}</span>
                 <span className="rate-val">{result?.rateCross ?? '—'}</span>
               </div>
             </div>
 
             <div className="summary-section">
-              <div className="section-label" style={{ margin: 0 }}>{t('label_auto_summary')}</div>
+              <div className="section-header" style={{ marginBottom: 0 }}>
+                <div className="section-label" style={{ margin: 0 }}>{t('label_auto_summary')}</div>
+                <button
+                  className={`copy-btn${copied ? ' copied' : ''}`}
+                  onClick={handleCopy}
+                  disabled={!result?.auditSummary || result.auditSummary === '—'}
+                >
+                  {copied ? t('btn_copied') : t('btn_copy')}
+                </button>
+              </div>
               <pre className="summary-pre">{result?.auditSummary ?? '—'}</pre>
             </div>
 
