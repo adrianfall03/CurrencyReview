@@ -20,7 +20,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = 'fx-history'
-const HISTORY_MAX = 8
+const HISTORY_MAX = 10
 
 function loadHistory(): HistoryEntry[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') } catch { return [] }
@@ -633,46 +633,49 @@ export default function FXConverter() {
             </div>
 
             {/* History card */}
-            {history.length > 0 && (
-              <div className="card history-card">
-                <div className="history-header">
-                  <span className="section-label" style={{ margin: 0 }}>{t('label_history')}</span>
+            <div className="card history-card">
+              <div className="history-header">
+                <span className="section-label" style={{ margin: 0 }}>{t('label_history')}</span>
+                {history.length > 0 && (
                   <button className="btn-ghost" onClick={clearHistory}>{t('btn_clear')}</button>
-                </div>
-                <div className="history-list">
-                  {history.map(entry => {
-                    const ff = flagUrl(entry.from)
-                    const tf = flagUrl(entry.to)
-                    return (
-                      <button
-                        key={entry.id}
-                        className="history-entry"
-                        onClick={() => handleRestoreHistory(entry)}
-                        title={`Restore: ${entry.from} → ${entry.to} ${entry.amount}`}
-                      >
-                        <div className="history-left">
-                          <div className="history-pair">
-                            {ff && <img src={ff} className="history-flag" width={16} height={11} alt="" />}
-                            <span>{entry.from}</span>
-                            <span className="history-arrow">→</span>
-                            {tf && <img src={tf} className="history-flag" width={16} height={11} alt="" />}
-                            <span>{entry.to}</span>
-                          </div>
-                          <div className="history-sub">{entry.amount} · {srcLabel(entry.source)}</div>
-                        </div>
-                        <div className="history-right">
-                          <div>
-                            <span className="history-result-num">{entry.resultNum}</span>
-                            {entry.resultCcy && <span className="history-result-ccy">{entry.resultCcy}</span>}
-                          </div>
-                          <div className="history-date">{entry.rateDate}</div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
+                )}
               </div>
-            )}
+              <div className="history-list">
+                {history.map(entry => {
+                  const ff = flagUrl(entry.from)
+                  const tf = flagUrl(entry.to)
+                  return (
+                    <button
+                      key={entry.id}
+                      className="history-entry"
+                      onClick={() => handleRestoreHistory(entry)}
+                      title={`Restore: ${entry.from} → ${entry.to} ${entry.amount}`}
+                    >
+                      <div className="history-left">
+                        <div className="history-pair">
+                          {ff && <img src={ff} className="history-flag" width={16} height={11} alt="" />}
+                          <span>{entry.from}</span>
+                          <span className="history-arrow">→</span>
+                          {tf && <img src={tf} className="history-flag" width={16} height={11} alt="" />}
+                          <span>{entry.to}</span>
+                        </div>
+                        <div className="history-sub">{entry.amount} · {srcLabel(entry.source)}</div>
+                      </div>
+                      <div className="history-right">
+                        <div>
+                          <span className="history-result-num">{entry.resultNum}</span>
+                          {entry.resultCcy && <span className="history-result-ccy">{entry.resultCcy}</span>}
+                        </div>
+                        <div className="history-date">{entry.rateDate}</div>
+                      </div>
+                    </button>
+                  )
+                })}
+                {Array.from({ length: Math.max(0, 3 - history.length) }, (_, i) => (
+                  <div key={`ph-${i}`} className="history-placeholder" aria-hidden="true" />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
