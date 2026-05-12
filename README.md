@@ -23,7 +23,9 @@ It supports three data sources and performs cross-rate conversion via JPY pivot.
 - Day or month date selection
 - Cross-rate calculation via JPY pivot
 - Half-up / ceiling / floor rounding with configurable decimal places
-- Auto-convert on form change
+- Explicit Convert button (or Enter key) — no accidental mid-typing saves
+- Searchable currency dropdown with country flag icons
+- Recent conversion history (up to 8 entries, stored in localStorage)
 - Light/Dark theme, English/Japanese UI
 
 ### Architecture
@@ -40,6 +42,8 @@ It supports three data sources and performs cross-rate conversion via JPY pivot.
 | `app/api/currencies/` | Currency list endpoint |
 | `app/api/convert/` | Conversion endpoint |
 | `components/FXConverter.tsx` | Main React client component |
+| `components/CurrencySelect.tsx` | Searchable dropdown with flag images |
+| `lib/flags.ts` | Currency → country code map and flag URL helper |
 | `lib/mizuho.ts` | Mizuho CSV parser + Blob reader |
 | `lib/frankfurter.ts` | ECB/Frankfurter API client |
 | `lib/murc.ts` | MURC HTML scraper |
@@ -79,9 +83,11 @@ FX Converter は Vercel にデプロイする Web ベースの外貨換算ツー
 
 ### 主な機能
 - 日付・月次の選択
-- JPY 介したクロスレート計算
+- JPY を介したクロスレート計算
 - 四捨五入・切上げ・切捨て、小数桁数設定
-- フォーム変更時の自動換算
+- 換算ボタンまたは Enter キーで明示的に換算（入力途中の誤保存なし）
+- 国旗アイコン付き検索可能な通貨ドロップダウン
+- 直近の換算履歴（最大 8 件、localStorage に保存）
 - ライト／ダークテーマ、日英 UI 切替
 
 ### アーキテクチャ
@@ -124,8 +130,10 @@ FX Converter 是一个部署在 Vercel 上的网页版外汇换算工具。
 - 支持按日期或月份换算
 - 通过 JPY 枢轴计算交叉汇率
 - 四舍五入 / 向上取整 / 向下取整，可配置小数位数
-- 表单变化时自动换算
-- 亮/暗主题，中英文界面切换
+- 点击换算按钮或按 Enter 触发换算（不再自动保存中间输入状态）
+- 带国旗图标的可搜索货币下拉框
+- 最近换算记录（最多 8 条，存储于 localStorage）
+- 亮/暗主题，日英界面切换
 
 ### 架构说明
 - **Next.js 15** App Router + TypeScript，部署在 **Vercel**
