@@ -583,6 +583,162 @@ input, select, textarea {
   .pair-row   { flex-wrap: wrap; }
 }
 
+/* ─── Custom currency dropdown ───────────────────────────────── */
+.ccy-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.ccy-trigger {
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ccy-trigger:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.ccy-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+}
+.ccy-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ccy-flag {
+  flex-shrink: 0;
+  border-radius: 2px;
+  display: block;
+}
+.ccy-flag-placeholder {
+  width: 20px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--border);
+  display: inline-block;
+}
+
+.ccy-code {
+  flex: 1;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccy-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  stroke: var(--ink-3);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.18s ease;
+}
+[aria-expanded="true"] .ccy-chevron {
+  transform: rotate(180deg);
+}
+
+.ccy-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow);
+  z-index: 200;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+}
+
+.ccy-search-row {
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--border-2);
+  flex-shrink: 0;
+}
+
+.ccy-search {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 0 9px;
+  font-size: 13px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ccy-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+}
+
+.ccy-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 0;
+}
+
+.ccy-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: left;
+  transition: background 0.1s;
+}
+.ccy-option:hover,
+.ccy-option.ccy-focused {
+  background: var(--surface-2);
+}
+.ccy-option.ccy-selected {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ccy-option.ccy-selected .ccy-code {
+  color: var(--accent);
+}
+
+.ccy-empty {
+  padding: 12px 10px;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
 /* ─── Animations ─────────────────────────────────────────────── */
 @keyframes spin {
   to { transform: rotate(360deg); }
