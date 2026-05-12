@@ -236,6 +236,14 @@ body {
   overflow: hidden;
 }
 
+/* ─── Right column (result + history stacked) ────────────────── */
+.right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 /* ─── Controls card sections ─────────────────────────────────── */
 .ctrl-section {
   padding: 18px 22px;
@@ -675,6 +683,7 @@ input, select, textarea {
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 880px) {
   .workspace { grid-template-columns: 1fr; }
+  .right-col { gap: 12px; }
 }
 
 @media (max-width: 520px) {
@@ -685,6 +694,101 @@ input, select, textarea {
   .brand-sub  { display: none; }
   .result-num { font-size: 38px; }
   .pair-row   { flex-wrap: wrap; }
+}
+
+/* ─── History card ───────────────────────────────────────────── */
+.history-card {
+  overflow: hidden;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px 0;
+}
+
+.history-list {
+  padding: 6px 0 4px;
+}
+
+.history-entry {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 18px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-2);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ink);
+  text-align: left;
+  transition: background 0.12s;
+}
+.history-entry:last-child { border-bottom: none; }
+.history-entry:hover { background: var(--surface-2); }
+.history-entry:active { background: var(--accent-soft); }
+
+.history-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.history-pair {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.history-flag {
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.history-arrow {
+  color: var(--ink-3);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.history-sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.history-result-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.history-result-ccy {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-left: 3px;
+}
+
+.history-date {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
 }
 
 /* ─── Custom currency dropdown ───────────────────────────────── */

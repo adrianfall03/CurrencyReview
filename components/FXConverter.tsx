@@ -5,6 +5,29 @@ import { ConvertRequest, ConvertResponse, CurrenciesResponse, DateMode, RateBasi
 import CurrencySelect from './CurrencySelect'
 import { flagUrl } from '@/lib/flags'
 
+// ─── History ──────────────────────────────────────────────────
+interface HistoryEntry {
+  id: string
+  from: string
+  to: string
+  source: Source
+  basis: RateBasis
+  amount: string
+  resultNum: string
+  resultCcy: string
+  rateDate: string
+  ts: number
+}
+
+const HISTORY_KEY = 'fx-history'
+const HISTORY_MAX = 8
+
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]') } catch { return [] }
+}
+
+const srcLabel = (s: Source) => s === 'mizuho' ? 'Mizuho' : s === 'ecb' ? 'ECB' : 'MURC'
+
 // ─── i18n ─────────────────────────────────────────────────────
 const I18N = {
   en: {
@@ -35,8 +58,10 @@ const I18N = {
     rounding_down: 'Floor',
     label_auto_summary: 'Audit summary',
     label_rate_details: 'Rate details',
+    label_history: 'Recent',
     btn_copy: 'Copy',
     btn_copied: '✓ Copied',
+    btn_clear: 'Clear',
     loaded_yes: 'Rates loaded',
     loaded_no: 'Not loaded',
     not_loaded: 'Not loaded',
@@ -75,8 +100,10 @@ const I18N = {
     rounding_down: '切り捨て',
     label_auto_summary: '監査サマリー',
     label_rate_details: 'レート詳細',
+    label_history: '履歴',
     btn_copy: 'コピー',
     btn_copied: '✓ コピー済',
+    btn_clear: '削除',
     loaded_yes: 'レート読込済み',
     loaded_no: '未読込',
     not_loaded: '未読込',
@@ -163,6 +190,7 @@ export default function FXConverter() {
   const [rounding, setRounding] = useState<RoundingMode>('half_up')
   const [decimals, setDecimals] = useState('2')
   const [copied, setCopied] = useState(false)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
 
   const [currencies, setCurrencies] = useState<string[]>(['JPY', 'USD'])
   const [years, setYears]   = useState<string[]>([])
@@ -180,10 +208,11 @@ export default function FXConverter() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const t = useT(lang)
 
-  // theme / lang init
+  // init theme / lang / history from localStorage
   useEffect(() => {
     setTheme((localStorage.getItem('fx-theme') ?? 'light') as 'light' | 'dark')
     setLang((localStorage.getItem('fx-lang') ?? 'en') as Lang)
+    setHistory(loadHistory())
   }, [])
 
   useEffect(() => {
@@ -236,7 +265,30 @@ export default function FXConverter() {
       const res  = await fetch('/api/convert', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data: ConvertResponse = await res.json()
       setResult(data)
-      if (data.error) { setStatusMsg(data.error); setStatusType('error') }
+      if (data.error) {
+        setStatusMsg(data.error); setStatusType('error')
+      } else if (data.result && data.result !== '-') {
+        // Save to history
+        const parts = data.result.split(/\s{2,}/)
+        const entry: HistoryEntry = {
+          id: String(Date.now()),
+          from, to, source, basis, amount,
+          resultNum: parts[0] ?? '',
+          resultCcy: parts[1] ?? '',
+          rateDate: data.selDate && data.selDate !== '—' ? data.selDate : day,
+          ts: Date.now(),
+        }
+        setHistory(prev => {
+          const deduped = prev.filter(h =>
+            !(h.from === entry.from && h.to === entry.to &&
+              h.source === entry.source && h.rateDate === entry.rateDate &&
+              h.amount === entry.amount)
+          )
+          const next = [entry, ...deduped].slice(0, HISTORY_MAX)
+          try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)) } catch {}
+          return next
+        })
+      }
     } catch (err) {
       setStatusMsg(String(err)); setStatusType('error')
     } finally {
@@ -272,6 +324,22 @@ export default function FXConverter() {
       setTimeout(() => setCopied(false), 2000)
     })
   }
+  function handleRestoreHistory(entry: HistoryEntry) {
+    setAmount(entry.amount)
+    setDateMode('day')
+    setDay(entry.rateDate)
+    setBasis(entry.basis)
+    setFrom(entry.from)
+    setTo(entry.to)
+    if (entry.source !== source) {
+      setSource(entry.source)
+      loadCurrencies(entry.source)
+    }
+  }
+  function clearHistory() {
+    setHistory([])
+    try { localStorage.removeItem(HISTORY_KEY) } catch {}
+  }
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next); localStorage.setItem('fx-theme', next)
@@ -283,14 +351,12 @@ export default function FXConverter() {
 
   const basisLabel = source === 'murc' ? basis.toUpperCase() : source === 'mizuho' ? 'TTM' : 'MID'
 
-  // parse result string "123.45  USD" → ["123.45", "USD"]
   const [resultNum, resultCcy] = (() => {
     if (!result?.result || result.result === '-') return ['—', '']
     const parts = result.result.split(/\s{2,}/)
     return [parts[0] ?? '—', parts[1] ?? '']
   })()
 
-  // scale font size down for long numbers to prevent overflow
   const resultNumFontSize =
     resultNum.length > 18 ? '22px' :
     resultNum.length > 14 ? '28px' :
@@ -324,10 +390,7 @@ export default function FXConverter() {
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
             <div className={`status-badge ${loading ? 'loading' : loaded ? 'ok' : 'off'}`}>
-              {loading
-                ? <span className="status-spinner" />
-                : <span className="status-dot" />
-              }
+              {loading ? <span className="status-spinner" /> : <span className="status-dot" />}
               {loading ? t('btn_loading') : loaded ? t('loaded_yes') : t('loaded_no')}
             </div>
           </div>
@@ -490,69 +553,115 @@ export default function FXConverter() {
             </div>
           </div>
 
-          {/* ── Result card ── */}
-          <div className="card result-card selectable">
-            <div className="result-header">
-              <div className="section-label" style={{ margin: 0 }}>{t('label_result')}</div>
-              <div className="result-badges">
-                <span className="badge badge-accent">{basisLabel}</span>
-                {result?.usedDate && result.usedDate !== '-' && (
-                  <span className="badge badge-neutral">{result.usedDate}</span>
+          {/* ── Right column: result + history ── */}
+          <div className="right-col">
+
+            {/* Result card */}
+            <div className="card result-card selectable">
+              <div className="result-header">
+                <div className="section-label" style={{ margin: 0 }}>{t('label_result')}</div>
+                <div className="result-badges">
+                  <span className="badge badge-accent">{basisLabel}</span>
+                  {result?.usedDate && result.usedDate !== '-' && (
+                    <span className="badge badge-neutral">{result.usedDate}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="result-display">
+                {resultNum !== '—' ? (
+                  <>
+                    <div className="result-num" style={{ fontSize: resultNumFontSize }}>{resultNum}</div>
+                    {resultCcy && (
+                      <div className="result-ccy">
+                        {toFlagUrl && <img src={toFlagUrl} alt="" className="result-flag" width={24} height={17} />}
+                        {resultCcy}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="result-placeholder">{t('hint_result')}</div>
                 )}
               </div>
-            </div>
 
-            <div className="result-display">
-              {resultNum !== '—' ? (
-                <>
-                  <div className="result-num" style={{ fontSize: resultNumFontSize }}>{resultNum}</div>
-                  {resultCcy && (
-                    <div className="result-ccy">
-                      {toFlagUrl && <img src={toFlagUrl} alt="" className="result-flag" width={24} height={17} />}
-                      {resultCcy}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="result-placeholder">{t('hint_result')}</div>
+              <div className="rate-table">
+                <div className="rate-row">
+                  <span className="rate-key">{t('label_resolved_date')}</span>
+                  <span className="rate-val">{result?.selDate ?? '—'}</span>
+                </div>
+                <div className="rate-row">
+                  <span className="rate-key">{from} → JPY</span>
+                  <span className="rate-val">{result?.rateFrom ?? '—'}</span>
+                </div>
+                <div className="rate-row">
+                  <span className="rate-key">{to} → JPY</span>
+                  <span className="rate-val">{result?.rateTo ?? '—'}</span>
+                </div>
+                <div className="rate-row">
+                  <span className="rate-key">{from}/{to}</span>
+                  <span className="rate-val">{result?.rateCross ?? '—'}</span>
+                </div>
+              </div>
+
+              <div className="summary-section">
+                <div className="section-header" style={{ marginBottom: 0 }}>
+                  <div className="section-label" style={{ margin: 0 }}>{t('label_auto_summary')}</div>
+                  <button
+                    className={`copy-btn${copied ? ' copied' : ''}`}
+                    onClick={handleCopy}
+                    disabled={!result?.auditSummary || result.auditSummary === '—'}
+                  >
+                    {copied ? t('btn_copied') : t('btn_copy')}
+                  </button>
+                </div>
+                <pre className="summary-pre">{result?.auditSummary ?? '—'}</pre>
+              </div>
+
+              {result?.fallback && (
+                <div className="fallback-note">{result.fallback}</div>
               )}
             </div>
 
-            <div className="rate-table">
-              <div className="rate-row">
-                <span className="rate-key">{t('label_resolved_date')}</span>
-                <span className="rate-val">{result?.selDate ?? '—'}</span>
+            {/* History card */}
+            {history.length > 0 && (
+              <div className="card history-card">
+                <div className="history-header">
+                  <span className="section-label" style={{ margin: 0 }}>{t('label_history')}</span>
+                  <button className="btn-ghost" onClick={clearHistory}>{t('btn_clear')}</button>
+                </div>
+                <div className="history-list">
+                  {history.map(entry => {
+                    const ff = flagUrl(entry.from)
+                    const tf = flagUrl(entry.to)
+                    return (
+                      <button
+                        key={entry.id}
+                        className="history-entry"
+                        onClick={() => handleRestoreHistory(entry)}
+                        title={`Restore: ${entry.from} → ${entry.to} ${entry.amount}`}
+                      >
+                        <div className="history-left">
+                          <div className="history-pair">
+                            {ff && <img src={ff} className="history-flag" width={16} height={11} alt="" />}
+                            <span>{entry.from}</span>
+                            <span className="history-arrow">→</span>
+                            {tf && <img src={tf} className="history-flag" width={16} height={11} alt="" />}
+                            <span>{entry.to}</span>
+                          </div>
+                          <div className="history-sub">{entry.amount} · {srcLabel(entry.source)}</div>
+                        </div>
+                        <div className="history-right">
+                          <div>
+                            <span className="history-result-num">{entry.resultNum}</span>
+                            {entry.resultCcy && <span className="history-result-ccy">{entry.resultCcy}</span>}
+                          </div>
+                          <div className="history-date">{entry.rateDate}</div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="rate-row">
-                <span className="rate-key">{from} → JPY</span>
-                <span className="rate-val">{result?.rateFrom ?? '—'}</span>
-              </div>
-              <div className="rate-row">
-                <span className="rate-key">{to} → JPY</span>
-                <span className="rate-val">{result?.rateTo ?? '—'}</span>
-              </div>
-              <div className="rate-row">
-                <span className="rate-key">{from}/{to}</span>
-                <span className="rate-val">{result?.rateCross ?? '—'}</span>
-              </div>
-            </div>
-
-            <div className="summary-section">
-              <div className="section-header" style={{ marginBottom: 0 }}>
-                <div className="section-label" style={{ margin: 0 }}>{t('label_auto_summary')}</div>
-                <button
-                  className={`copy-btn${copied ? ' copied' : ''}`}
-                  onClick={handleCopy}
-                  disabled={!result?.auditSummary || result.auditSummary === '—'}
-                >
-                  {copied ? t('btn_copied') : t('btn_copy')}
-                </button>
-              </div>
-              <pre className="summary-pre">{result?.auditSummary ?? '—'}</pre>
-            </div>
-
-            {result?.fallback && (
-              <div className="fallback-note">{result.fallback}</div>
             )}
           </div>
         </div>
