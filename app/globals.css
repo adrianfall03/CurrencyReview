@@ -155,6 +155,41 @@ body {
   gap: 8px;
 }
 
+/* ─── Language toggle ───────────────────────────────────────── */
+.lang-toggle {
+  height: 36px;
+  padding: 0 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; gap: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.lang-toggle:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-bdr);
+}
+.lang-toggle:active { transform: scale(0.94); }
+
+.lang-opt {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  transition: color 0.15s;
+  line-height: 1;
+}
+.lang-opt-active {
+  color: var(--accent);
+}
+.lang-divider {
+  font-size: 11px;
+  color: var(--border);
+  line-height: 1;
+  user-select: none;
+}
+
 /* ─── Icon buttons ───────────────────────────────────────────── */
 .icon-btn {
   width: 36px; height: 36px;

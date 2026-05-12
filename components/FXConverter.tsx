@@ -144,15 +144,6 @@ function MoonIcon() {
   )
 }
 
-function GlobeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
-    </svg>
-  )
-}
-
 function SwapIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
@@ -383,8 +374,12 @@ export default function FXConverter() {
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="icon-btn" onClick={toggleLang} title={lang === 'ja' ? 'Switch to English' : '日本語に切替'}>
-              <GlobeIcon />
+            <button className="lang-toggle" onClick={toggleLang}
+              title={lang === 'ja' ? 'Switch to English' : '日本語に切替'}
+              aria-label={lang === 'ja' ? 'Switch to English' : '日本語に切替'}>
+              <span className={lang === 'en' ? 'lang-opt lang-opt-active' : 'lang-opt'}>EN</span>
+              <span className="lang-divider">|</span>
+              <span className={lang === 'ja' ? 'lang-opt lang-opt-active' : 'lang-opt'}>日A</span>
             </button>
             <button className="icon-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
