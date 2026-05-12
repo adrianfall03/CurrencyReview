@@ -48,7 +48,8 @@ const I18N = {
     range_available: '{min} — {max}',
     label_amount: 'Amount',
     label_result: 'Result',
-    hint_result: 'Enter an amount to convert.',
+    hint_result: 'Enter an amount and press Convert.',
+    btn_convert: 'Convert',
     label_resolved_date: 'Resolved date',
     label_result_rounding: 'Rounding',
     label_result_decimals: 'Decimals',
@@ -89,7 +90,8 @@ const I18N = {
     range_available: '{min} — {max}',
     label_amount: '金額',
     label_result: '換算結果',
-    hint_result: '金額を入力してください。',
+    hint_result: '金額を入力して換算ボタンを押してください。',
+    btn_convert: '換算する',
     label_resolved_date: '適用日',
     label_result_rounding: '丸め',
     label_result_decimals: '小数桁数',
@@ -194,8 +196,6 @@ export default function FXConverter() {
   const [statusType, setStatusType] = useState<'info' | 'error'>('info')
   const [detailsOpen, setDetailsOpen] = useState(false)
 
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const typingAmount = useRef(false)
   const t = useT(lang)
 
   // init theme / lang / history from localStorage
@@ -257,8 +257,7 @@ export default function FXConverter() {
       setResult(data)
       if (data.error) {
         setStatusMsg(data.error); setStatusType('error')
-      } else if (!typingAmount.current && data.result && data.result !== '-') {
-        // Save to history only when amount is finalized (blur / Enter), not while typing
+      } else if (data.result && data.result !== '-') {
         const parts = data.result.split(/\s{2,}/)
         const entry: HistoryEntry = {
           id: String(Date.now()),
@@ -286,15 +285,6 @@ export default function FXConverter() {
     }
   }, [loaded, amount, source, from, to, dateMode, day, year, month, basis, rounding, decimals])
 
-  const scheduleConvert = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => doConvert(), 300)
-  }, [doConvert])
-
-  useEffect(() => {
-    if (loaded && amount.trim()) scheduleConvert()
-  }, [from, to, dateMode, day, year, month, basis, rounding, decimals, loaded]) // eslint-disable-line
-
   // handlers
   function handleSourceChange(s: Source) { setSource(s); setResult(null); loadCurrencies(s) }
   function handleSwap()      { setFrom(to); setTo(from) }
@@ -305,8 +295,6 @@ export default function FXConverter() {
   function handleAmountBlur() {
     const n = parseFloat(amount.replace(/,/g, ''))
     if (!isNaN(n)) setAmount(n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-    typingAmount.current = false
-    doConvert()
   }
   function handleCopy() {
     if (!result?.auditSummary || result.auditSummary === '—') return
@@ -522,9 +510,9 @@ export default function FXConverter() {
                   type="text"
                   value={amount}
                   placeholder="10,000"
-                  onChange={e => { setAmount(e.target.value); typingAmount.current = true; scheduleConvert() }}
+                  onChange={e => setAmount(e.target.value)}
                   onBlur={handleAmountBlur}
-                  onKeyDown={e => { if (e.key === 'Enter') { typingAmount.current = false; e.currentTarget.blur(); doConvert() } }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); doConvert() } }}
                 />
               </div>
               <div className="amount-opts">
@@ -542,6 +530,13 @@ export default function FXConverter() {
                   )}
                 </select>
               </div>
+              <button
+                className="convert-btn"
+                onClick={doConvert}
+                disabled={loading || !loaded || !amount.trim()}
+              >
+                {loading ? t('btn_loading') : t('btn_convert')}
+              </button>
             </div>
           </div>
 

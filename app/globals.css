@@ -388,6 +388,24 @@ body {
 .amount-opts select:hover { border-color: var(--border); color: var(--ink); }
 .amount-opts select:focus { border-color: var(--accent); color: var(--ink); }
 
+.convert-btn {
+  width: 100%;
+  margin-top: 10px;
+  height: 42px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+}
+.convert-btn:hover:not(:disabled) { background: var(--accent-2); }
+.convert-btn:active:not(:disabled) { transform: scale(0.98); }
+.convert-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* ─── Date controls ──────────────────────────────────────────── */
 .date-row {
   display: flex;
