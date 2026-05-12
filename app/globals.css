@@ -224,7 +224,7 @@ body {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* ─── Card ───────────────────────────────────────────────────── */
@@ -242,6 +242,7 @@ body {
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  align-self: start;
 }
 
 /* ─── Controls card sections ─────────────────────────────────── */
