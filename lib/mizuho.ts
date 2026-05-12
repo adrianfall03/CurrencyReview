@@ -44,14 +44,20 @@ function parseMizuhoCSV(text: string): MizuhoData {
 
   const headerCols = parseRow(lines[headerIdx])
 
-  // Group duplicate ".1" columns (Mizuho CSV convention)
-  const groups: { [base: string]: number[] } = {}
+  // Group duplicate ".1" columns (Mizuho CSV convention).
+  // Also normalize unit-quoted headers like "KRW(100)" → key "KRW", divisor 100.
+  const groups: { [base: string]: { indices: number[]; divisor: number } } = {}
   for (let i = 1; i < headerCols.length; i++) {
     const col = headerCols[i]
     if (!col) continue
-    const base = col.endsWith('.1') ? col.slice(0, -2) : col
-    if (!groups[base]) groups[base] = []
-    groups[base].push(i)
+    // Strip optional ".1" duplicate suffix first
+    const raw = col.endsWith('.1') ? col.slice(0, -2) : col
+    // Parse optional unit suffix, e.g. "KRW(100)"
+    const unitMatch = raw.match(/^([A-Z]{2,4})\((\d+)\)$/)
+    const base    = unitMatch ? unitMatch[1] : raw
+    const divisor = unitMatch ? parseInt(unitMatch[2], 10) : 1
+    if (!groups[base]) groups[base] = { indices: [], divisor }
+    groups[base].indices.push(i)
   }
 
   const rateMap: RateMap = {}
@@ -68,7 +74,7 @@ function parseMizuhoCSV(text: string): MizuhoData {
     if (!dateStr) continue
 
     const rates: { [currency: string]: number | null } = {}
-    for (const [base, indices] of Object.entries(groups)) {
+    for (const [base, { indices, divisor }] of Object.entries(groups)) {
       let val: number | null = null
       for (const idx of indices) {
         const raw = cols[idx] ?? ''
@@ -76,7 +82,7 @@ function parseMizuhoCSV(text: string): MizuhoData {
         const n = parseFloat(raw)
         if (!isNaN(n)) { val = n; break }
       }
-      rates[base] = val
+      rates[base] = val !== null ? val / divisor : null
       if (val !== null) currencySet.add(base)
     }
 
