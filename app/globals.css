@@ -322,6 +322,37 @@ body {
 .pair-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
 .pair-label { font-size: 11px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.3px; }
 
+/* ─── Amount inline options ──────────────────────────────────── */
+.amount-opts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+.opts-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.opts-sep {
+  color: var(--ink-3);
+  font-size: 11px;
+  opacity: 0.4;
+}
+.amount-opts select {
+  height: 28px;
+  font-size: 12px;
+  padding: 0 22px 0 8px;
+  color: var(--ink-2);
+  border-color: var(--border-2);
+  background-color: var(--surface-2);
+  flex-shrink: 0;
+}
+.amount-opts select:hover { border-color: var(--border); color: var(--ink); }
+.amount-opts select:focus { border-color: var(--accent); color: var(--ink); }
+
 /* ─── Date controls ──────────────────────────────────────────── */
 .date-row {
   display: flex;
@@ -527,9 +558,11 @@ input, select, textarea {
 }
 
 .result-placeholder {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--ink-3);
   line-height: 1.55;
+  text-align: center;
+  padding: 12px 0;
 }
 
 .result-num {

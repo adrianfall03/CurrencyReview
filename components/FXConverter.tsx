@@ -47,9 +47,8 @@ const I18N = {
     btn_latest: 'Use latest',
     range_available: '{min} — {max}',
     label_amount: 'Amount',
-    hint_amount: 'Auto-converts on change · Enter or blur to format',
     label_result: 'Result',
-    hint_result: 'Select currencies and a date to see conversion.',
+    hint_result: 'Enter an amount to convert.',
     label_resolved_date: 'Resolved date',
     label_result_rounding: 'Rounding',
     label_result_decimals: 'Decimals',
@@ -89,9 +88,8 @@ const I18N = {
     btn_latest: '最新を使う',
     range_available: '{min} — {max}',
     label_amount: '金額',
-    hint_amount: '変更時に自動換算 · Enter/フォーカス外で整形',
     label_result: '換算結果',
-    hint_result: '通貨と日付を選択すると結果が表示されます。',
+    hint_result: '金額を入力してください。',
     label_resolved_date: '適用日',
     label_result_rounding: '丸め',
     label_result_decimals: '小数桁数',
@@ -520,7 +518,7 @@ export default function FXConverter() {
               </div>
             </div>
 
-            {/* Amount */}
+            {/* Amount + inline rounding options */}
             <div className="ctrl-section">
               <div className="section-label">{t('label_amount')}</div>
               <div className="input-affix-wrap">
@@ -534,19 +532,16 @@ export default function FXConverter() {
                   onKeyDown={e => { if (e.key === 'Enter') { typingAmount.current = false; e.currentTarget.blur(); doConvert() } }}
                 />
               </div>
-              <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--ink-3)' }}>{t('hint_amount')}</div>
-            </div>
-
-            {/* Output format */}
-            <div className="ctrl-section">
-              <div className="section-label">{t('label_result_rounding')} &amp; {t('label_result_decimals')}</div>
-              <div className="format-row">
-                <select value={rounding} onChange={e => setRounding(e.target.value as RoundingMode)} disabled={loading} style={{ flex: '1 1 150px' }}>
+              <div className="amount-opts">
+                <span className="opts-label">{t('label_result_rounding')}</span>
+                <select value={rounding} onChange={e => setRounding(e.target.value as RoundingMode)} disabled={loading}>
                   <option value="half_up">{t('rounding_half_up')}</option>
                   <option value="up">{t('rounding_up')}</option>
                   <option value="down">{t('rounding_down')}</option>
                 </select>
-                <select value={decimals} onChange={e => setDecimals(e.target.value)} disabled={loading} style={{ flex: '0 0 80px' }}>
+                <span className="opts-sep">·</span>
+                <span className="opts-label">{t('label_result_decimals')}</span>
+                <select value={decimals} onChange={e => setDecimals(e.target.value)} disabled={loading}>
                   {Array.from({ length: 9 }, (_, i) => String(i)).map(d =>
                     <option key={d} value={d}>{d}</option>
                   )}
@@ -586,41 +581,49 @@ export default function FXConverter() {
                 )}
               </div>
 
-              <div className="rate-table">
-                <div className="rate-row">
-                  <span className="rate-key">{t('label_resolved_date')}</span>
-                  <span className="rate-val">{result?.selDate ?? '—'}</span>
-                </div>
-                <div className="rate-row">
-                  <span className="rate-key">{from} → JPY</span>
-                  <span className="rate-val">{result?.rateFrom ?? '—'}</span>
-                </div>
-                <div className="rate-row">
-                  <span className="rate-key">{to} → JPY</span>
-                  <span className="rate-val">{result?.rateTo ?? '—'}</span>
-                </div>
-                <div className="rate-row">
-                  <span className="rate-key">{from}/{to}</span>
-                  <span className="rate-val">{result?.rateCross ?? '—'}</span>
-                </div>
-              </div>
+              {result && resultNum !== '—' && (
+                <>
+                  <div className="rate-table">
+                    <div className="rate-row">
+                      <span className="rate-key">{t('label_resolved_date')}</span>
+                      <span className="rate-val">{result.selDate ?? '—'}</span>
+                    </div>
+                    {from !== 'JPY' && (
+                      <div className="rate-row">
+                        <span className="rate-key">{from} → JPY</span>
+                        <span className="rate-val">{result.rateFrom ?? '—'}</span>
+                      </div>
+                    )}
+                    {to !== 'JPY' && (
+                      <div className="rate-row">
+                        <span className="rate-key">{to} → JPY</span>
+                        <span className="rate-val">{result.rateTo ?? '—'}</span>
+                      </div>
+                    )}
+                    <div className="rate-row">
+                      <span className="rate-key">{from}/{to}</span>
+                      <span className="rate-val">{result.rateCross ?? '—'}</span>
+                    </div>
+                  </div>
 
-              <div className="summary-section">
-                <div className="section-header" style={{ marginBottom: 0 }}>
-                  <div className="section-label" style={{ margin: 0 }}>{t('label_auto_summary')}</div>
-                  <button
-                    className={`copy-btn${copied ? ' copied' : ''}`}
-                    onClick={handleCopy}
-                    disabled={!result?.auditSummary || result.auditSummary === '—'}
-                  >
-                    {copied ? t('btn_copied') : t('btn_copy')}
-                  </button>
-                </div>
-                <pre className="summary-pre">{result?.auditSummary ?? '—'}</pre>
-              </div>
+                  <div className="summary-section">
+                    <div className="section-header" style={{ marginBottom: 0 }}>
+                      <div className="section-label" style={{ margin: 0 }}>{t('label_auto_summary')}</div>
+                      <button
+                        className={`copy-btn${copied ? ' copied' : ''}`}
+                        onClick={handleCopy}
+                        disabled={!result.auditSummary || result.auditSummary === '—'}
+                      >
+                        {copied ? t('btn_copied') : t('btn_copy')}
+                      </button>
+                    </div>
+                    <pre className="summary-pre">{result.auditSummary ?? '—'}</pre>
+                  </div>
 
-              {result?.fallback && (
-                <div className="fallback-note">{result.fallback}</div>
+                  {result.fallback && (
+                    <div className="fallback-note">{result.fallback}</div>
+                  )}
+                </>
               )}
             </div>
 
