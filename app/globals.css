@@ -603,10 +603,11 @@ input, select, textarea {
 /* ─── Result display ─────────────────────────────────────────── */
 .result-display {
   padding: 14px 22px 20px;
-  min-height: 72px;
+  height: 128px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  overflow: hidden;
 }
 
 .result-placeholder {
@@ -622,7 +623,7 @@ input, select, textarea {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 24px 0 20px;
+  padding: 0;
 }
 
 .result-empty-icon {
