@@ -3,6 +3,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ConvertRequest, ConvertResponse, CurrenciesResponse, DateMode, RateBasis, RoundingMode, Source } from '@/lib/types'
 
+// ─── Currency flags ───────────────────────────────────────────
+const FLAGS: Record<string, string> = {
+  AED: '🇦🇪', ARS: '🇦🇷', AUD: '🇦🇺', BDT: '🇧🇩', BGN: '🇧🇬',
+  BHD: '🇧🇭', BRL: '🇧🇷', CAD: '🇨🇦', CHF: '🇨🇭', CLP: '🇨🇱',
+  CNY: '🇨🇳', COP: '🇨🇴', CZK: '🇨🇿', DKK: '🇩🇰', EGP: '🇪🇬',
+  EUR: '🇪🇺', FJD: '🇫🇯', GBP: '🇬🇧', GHS: '🇬🇭', HKD: '🇭🇰',
+  HRK: '🇭🇷', HUF: '🇭🇺', IDR: '🇮🇩', ILS: '🇮🇱', INR: '🇮🇳',
+  ISK: '🇮🇸', JOD: '🇯🇴', JPY: '🇯🇵', KES: '🇰🇪', KHR: '🇰🇭',
+  KRW: '🇰🇷', KWD: '🇰🇼', LKR: '🇱🇰', MAD: '🇲🇦', MMK: '🇲🇲',
+  MXN: '🇲🇽', MYR: '🇲🇾', NGN: '🇳🇬', NOK: '🇳🇴', NPR: '🇳🇵',
+  NZD: '🇳🇿', OMR: '🇴🇲', PEN: '🇵🇪', PGK: '🇵🇬', PHP: '🇵🇭',
+  PKR: '🇵🇰', PLN: '🇵🇱', QAR: '🇶🇦', RON: '🇷🇴', RUB: '🇷🇺',
+  SAR: '🇸🇦', SEK: '🇸🇪', SGD: '🇸🇬', THB: '🇹🇭', TND: '🇹🇳',
+  TRY: '🇹🇷', TWD: '🇹🇼', UAH: '🇺🇦', USD: '🇺🇸', VND: '🇻🇳',
+  ZAR: '🇿🇦',
+}
+
+const ccyLabel = (code: string) =>
+  FLAGS[code] ? `${FLAGS[code]} ${code}` : code
+
 // ─── i18n ─────────────────────────────────────────────────────
 const I18N = {
   en: {
@@ -383,7 +403,7 @@ export default function FXConverter() {
                 <div className="pair-field">
                   <div className="pair-label">{t('label_from')}</div>
                   <select value={from} onChange={e => setFrom(e.target.value)} disabled={loading}>
-                    {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+                    {currencies.map(c => <option key={c} value={c}>{ccyLabel(c)}</option>)}
                   </select>
                 </div>
                 <button className="swap-btn" onClick={handleSwap} disabled={loading} title={t('btn_swap')}>
@@ -392,7 +412,7 @@ export default function FXConverter() {
                 <div className="pair-field">
                   <div className="pair-label">{t('label_to')}</div>
                   <select value={to} onChange={e => setTo(e.target.value)} disabled={loading}>
-                    {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+                    {currencies.map(c => <option key={c} value={c}>{ccyLabel(c)}</option>)}
                   </select>
                 </div>
               </div>
